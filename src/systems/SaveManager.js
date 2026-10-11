@@ -1,5 +1,7 @@
+import { Pet } from '../entities/Pet.js';
+
 export class SaveManager {
-  constructor(player, economy, upgrades, shop, housePlot, quests, timeSystem) {
+  constructor(player, economy, upgrades, shop, housePlot, quests, timeSystem, petSystem) {
     this.player = player;
     this.economy = economy;
     this.upgrades = upgrades;
@@ -7,6 +9,7 @@ export class SaveManager {
     this.housePlot = housePlot;
     this.quests = quests;
     this.timeSystem = timeSystem;
+    this.petSystem = petSystem;
 
     this.saveKey = 'dino_adventure_game_save_v1';
     this.autoSaveTimer = 0;
@@ -50,6 +53,17 @@ export class SaveManager {
         time: this.timeSystem ? {
           currentTime: this.timeSystem.currentTime,
           dayCount: this.timeSystem.dayCount,
+        } : null,
+        pets: this.petSystem ? {
+          eggs: this.petSystem.eggs,
+          ownedPets: this.petSystem.ownedPets.map(p => ({
+            type: p.type,
+            name: p.name,
+            level: p.level,
+            xp: p.xp,
+            xpToNextLevel: p.xpToNextLevel,
+          })),
+          activePetName: this.petSystem.activePet ? this.petSystem.activePet.name : null,
         } : null,
       };
 
@@ -107,6 +121,24 @@ export class SaveManager {
       if (data.time && this.timeSystem) {
         this.timeSystem.currentTime = data.time.currentTime || 8.0;
         this.timeSystem.dayCount = data.time.dayCount || 1;
+      }
+
+      if (data.pets && this.petSystem) {
+        if (Array.isArray(data.pets.eggs)) {
+          this.petSystem.eggs = data.pets.eggs;
+        }
+        if (Array.isArray(data.pets.ownedPets) && data.pets.ownedPets.length > 0) {
+          this.petSystem.ownedPets = data.pets.ownedPets.map(pData => {
+            const pet = new Pet(pData.type, pData.name);
+            pet.level = pData.level || 1;
+            pet.xp = pData.xp || 0;
+            pet.xpToNextLevel = pData.xpToNextLevel || 100;
+            pet.speed = 210 + (pet.level - 1) * 10;
+            return pet;
+          });
+          const foundActive = this.petSystem.ownedPets.find(p => p.name === data.pets.activePetName);
+          this.petSystem.activePet = foundActive || this.petSystem.ownedPets[0];
+        }
       }
 
       return true;

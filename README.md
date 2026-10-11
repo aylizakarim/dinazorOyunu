@@ -49,9 +49,23 @@ Sevimli dinozor karakterimizle doğayı keşfettiğimiz, ağaçları, kayaları 
   - **Aşama 3:** Taş Dino Malikânesi (+%35 Kazma Gücü, +2 Şans & Pasif +8 Altın/sn)
   - **Aşama 4:** Efsanevi Dino Sarayı (2x Kazma Gücü, Pasif +20 Altın/sn & Köy Hükümdarı Tacı!)
 
-### 5. 💾 Otomatik Kayıt & Müzik
+### 5. 🐾 Dinozor Yumurtaları & Bebek Yoldaş (Pet Sistemi)
+- **Gizemli Dino Yumurtaları:** Kristal ağaçları, altın kayaları, fosil çukurlarını ve gece göktaşlarını kazınca nadir dinozor yumurtaları (Ateşli Rex, Mavi Orman Triceratops, Gökkuşağı Pterodaktil) düşer.
+- **Kuluçka & Çatlatma:** Üst bardaki **"🐾 Yoldaşım"** menüsünden yumurtayı kuluçkaya yatırıp sevimli bir yavru dinozor çatlatabilirsin!
+- **Yoldaşın Güçleri:**
+  - 🧲 **Otomatik Toplayıcı:** Etraftaki altın, odun ve taşları senin yerine koşup toplar!
+  - ⛏️ **Madenci Desteği:** Sen kazı yaparken yanına koşup hedefe ekstra hasar vurur!
+  - ⭐ **Seviye Atlama:** Eşya topladıkça ve maden kırdıkça XP kazanır, seviye atlayarak daha hızlı koşar ve daha güçlü vurur!
+
+### 6. 🌙 Dinamik Gece-Gündüz Döngüsü & Göktaşı Yağmurları
+- **Günün Saati:** Üst bardaki saat göstergesiyle şafak, öğle, gün batımı kızıllığı ve yıldızlı gece döngüsü.
+- **Gece Işıklandırması:** Köy sokak fenerleri, ev pencereleri ve Madenci Bareti gece önünü aydınlatır.
+- **Kozmik Göktaşı Olayı:** Gece gökyüzünden haritaya düşen parıltılı meteorlar; kazılınca bol miktarda Altın, Mücevher, Fosil ve Yumurta kazandırır.
+
+### 7. 💾 Otomatik Kayıt & Müzik
 - Otomatik olarak ilerlemen tarayıcının `localStorage` alanına kaydedilir.
 - Web Audio API ile hiçbir ek dosya yüklemesi gerekmeden çalışan neşeli synth ses efektleri ve dinlendirici fon müziği içerir.
+- **Sesli Konuşma (TTS):** Komşu dinozorların yanındayken **`L`** tuşuna basarak diyalogları yerel Türkçe seslendirme ile dinleyebilirsin!
 
 ---
 

@@ -20,6 +20,7 @@ export class UIManager {
     document.getElementById('btn-upgrades')?.addEventListener('click', () => this.openUpgradesModal());
     document.getElementById('btn-quests')?.addEventListener('click', () => this.openQuestsModal());
     document.getElementById('btn-house')?.addEventListener('click', () => this.openHouseModal());
+    document.getElementById('btn-pet')?.addEventListener('click', () => this.openPetModal());
     document.getElementById('btn-sound')?.addEventListener('click', () => this.toggleSound());
     document.getElementById('btn-help')?.addEventListener('click', () => this.openHelpModal());
 
@@ -112,6 +113,20 @@ export class UIManager {
         questBadge.textContent = readyCount;
       } else {
         questBadge.style.display = 'none';
+      }
+    }
+
+    // Check unhatched eggs for pet badge
+    if (this.game.petSystem) {
+      const petBadge = document.getElementById('badge-pet');
+      if (petBadge) {
+        const eggCount = this.game.petSystem.eggs.length;
+        if (eggCount > 0) {
+          petBadge.style.display = 'block';
+          petBadge.textContent = eggCount;
+        } else {
+          petBadge.style.display = 'none';
+        }
       }
     }
   }
@@ -542,5 +557,193 @@ export class UIManager {
   // --- HELP MODAL ---
   openHelpModal() {
     this.openModal('modal-help');
+  }
+
+  // --- PET MODAL ---
+  openPetModal(defaultTab = 'active') {
+    this.currentPetTab = defaultTab;
+    this.renderPet();
+    this.openModal('modal-pet');
+  }
+
+  renderPet() {
+    const petSystem = this.game.petSystem;
+    if (!petSystem) return;
+
+    const tabsContainer = document.getElementById('pet-tabs');
+    if (tabsContainer) {
+      tabsContainer.innerHTML = `
+        <button class="tab-btn ${this.currentPetTab === 'active' ? 'active' : ''}" data-tab="active">🐾 Aktif Yoldaşım</button>
+        <button class="tab-btn ${this.currentPetTab === 'incubator' ? 'active' : ''}" data-tab="incubator">🥚 Kuluçka & Yumurtalar (${petSystem.eggs.length})</button>
+      `;
+
+      tabsContainer.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          this.currentPetTab = btn.getAttribute('data-tab');
+          this.renderPet();
+        });
+      });
+    }
+
+    const container = document.getElementById('pet-content-container');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    if (this.currentPetTab === 'active') {
+      const activePet = petSystem.activePet;
+      if (!activePet) {
+        container.innerHTML = `
+          <div style="text-align:center;padding:30px;background:rgba(30,41,59,0.7);border-radius:14px">
+            <div style="font-size:42px;margin-bottom:12px">🥚</div>
+            <h4 style="font-size:16px;color:#facc15">Henüz Aktif Bir Dinozor Yoldaşın Yok!</h4>
+            <p style="font-size:13px;color:#94a3b8;margin-top:6px">Kuluçka sekmesine gidip bir dinozor yumurtası çatlatabilirsin.</p>
+            <button id="btn-goto-incubator" class="btn-action" style="margin-top:16px">Kuluçka Yuvasına Git 🥚</button>
+          </div>
+        `;
+        document.getElementById('btn-goto-incubator')?.addEventListener('click', () => {
+          this.currentPetTab = 'incubator';
+          this.renderPet();
+        });
+        return;
+      }
+
+      const xpPct = Math.min(100, Math.round((activePet.xp / activePet.xpToNextLevel) * 100));
+      const petAvatar = activePet.type === 'rex' ? '🦖' : (activePet.type === 'tricera' ? '🦕' : '🦅');
+
+      const card = document.createElement('div');
+      card.innerHTML = `
+        <div style="background:rgba(30,41,59,0.8);border-radius:16px;padding:20px;border:1.5px solid #ec4899;display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;align-items:center;gap:18px">
+            <div style="width:72px;height:72px;border-radius:20px;background:#1e293b;border:2px solid #ec4899;display:flex;justify-content:center;align-items:center;font-size:40px">
+              ${petAvatar}
+            </div>
+            <div style="flex:1">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <h3 style="font-size:18px;color:#f8fafc">${activePet.name}</h3>
+                <span style="font-size:13px;font-weight:800;color:#f472b6;background:rgba(244,114,182,0.15);padding:3px 10px;border-radius:99px">Seviye ${activePet.level}</span>
+              </div>
+              <p style="font-size:12px;color:#94a3b8;margin-top:4px">Sadık yavru dinozor dostun peşinden ayrılmaz.</p>
+              
+              <!-- XP Bar -->
+              <div style="margin-top:10px">
+                <div style="display:flex;justify-content:space-between;font-size:11px;color:#cbd5e1;margin-bottom:4px">
+                  <span>Deneyim (XP)</span>
+                  <span>${activePet.xp} / ${activePet.xpToNextLevel} XP</span>
+                </div>
+                <div style="width:100%;height:8px;background:#334155;border-radius:99px;overflow:hidden">
+                  <div style="width:${xpPct}%;height:100%;background:linear-gradient(90deg, #ec4899, #f472b6)"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pet Stats & Perks -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;background:rgba(15,23,42,0.6);padding:12px;border-radius:12px">
+            <div>
+              <span style="font-size:11px;color:#94a3b8">Yardımcı Vuruş Gücü:</span>
+              <p style="font-size:14px;font-weight:700;color:#facc15">⚔️ +${activePet.getMiningPower()} Hasar</p>
+            </div>
+            <div>
+              <span style="font-size:11px;color:#94a3b8">Koşu / Toplama Hızı:</span>
+              <p style="font-size:14px;font-weight:700;color:#38bdf8">⚡ ${activePet.speed} Hız</p>
+            </div>
+          </div>
+
+          <!-- Passive Abilities -->
+          <div style="background:rgba(15,23,42,0.4);border-radius:12px;padding:12px;font-size:12px;line-height:1.5;color:#e2e8f0;display:flex;flex-direction:column;gap:6px">
+            <div>🧲 <strong>Otomatik Toplayıcı:</strong> Yerdeki altın, odun ve taşları senin yerine koşup toplar!</div>
+            <div>⛏️ <strong>Madenci Desteği:</strong> Sen kazarken yanına gelip hedefe ekstra hasar vurur!</div>
+          </div>
+        </div>
+      `;
+      container.appendChild(card);
+
+      // If multiple owned pets, allow switching
+      if (petSystem.ownedPets.length > 1) {
+        const switchList = document.createElement('div');
+        switchList.style.marginTop = '14px';
+        switchList.innerHTML = `<h4 style="font-size:14px;color:#facc15;margin-bottom:10px">Diğer Dinozor Yoldaşların:</h4>`;
+        const listGrid = document.createElement('div');
+        listGrid.className = 'item-grid';
+
+        petSystem.ownedPets.forEach(p => {
+          if (p === activePet) return;
+          const otherCard = document.createElement('div');
+          otherCard.className = 'shop-card';
+          otherCard.innerHTML = `
+            <div class="card-top">
+              <div class="card-icon">${p.type === 'rex' ? '🦖' : (p.type === 'tricera' ? '🦕' : '🦅')}</div>
+              <div class="card-info">
+                <h4>${p.name}</h4>
+                <p>Seviye ${p.level} • ${p.speed} Hız</p>
+              </div>
+            </div>
+            <div class="card-bottom">
+              <span></span>
+              <button class="btn-action">Yanına Al 🐾</button>
+            </div>
+          `;
+          otherCard.querySelector('button').addEventListener('click', () => {
+            petSystem.setActivePet(p);
+            this.showToast(`🐾 "${p.name}" yanına çağrıldı!`);
+            this.renderPet();
+            this.game.saveManager.save();
+          });
+          listGrid.appendChild(otherCard);
+        });
+        switchList.appendChild(listGrid);
+        container.appendChild(switchList);
+      }
+    } else {
+      // INCUBATOR TAB
+      if (petSystem.eggs.length === 0) {
+        container.innerHTML = `
+          <div style="text-align:center;padding:30px;background:rgba(30,41,59,0.7);border-radius:14px">
+            <div style="font-size:42px;margin-bottom:12px">🪹</div>
+            <h4 style="font-size:16px;color:#facc15">Kuluçka Yuvası Şu An Boş!</h4>
+            <p style="font-size:13px;color:#94a3b8;margin-top:6px;line-height:1.5">
+              Doğadaki ulu ağaçları, altın/elmas kayalarını, fosil çukurlarını veya gece göktaşlarını kazarak yeni dinozor yumurtaları bulabilirsin!
+            </p>
+          </div>
+        `;
+        return;
+      }
+
+      const eggGrid = document.createElement('div');
+      eggGrid.className = 'item-grid';
+
+      petSystem.eggs.forEach((egg, idx) => {
+        const eggCard = document.createElement('div');
+        eggCard.className = 'shop-card';
+        eggCard.style.borderColor = egg.color || '#facc15';
+
+        eggCard.innerHTML = `
+          <div class="card-top">
+            <div class="card-icon" style="font-size:32px">🥚</div>
+            <div class="card-info">
+              <h4 style="color:${egg.color || '#fff'}">${egg.name}</h4>
+              <p>${egg.desc}</p>
+            </div>
+          </div>
+          <div class="card-bottom">
+            <span style="font-size:12px;color:#4ade80;font-weight:700">Kuluçkaya Hazır ✨</span>
+            <button class="btn-action" style="background:#ec4899">Çatlat 🐣</button>
+          </div>
+        `;
+
+        eggCard.querySelector('button').addEventListener('click', () => {
+          const newPet = petSystem.hatchEgg(idx);
+          if (newPet) {
+            this.currentPetTab = 'active';
+            this.renderPet();
+          }
+        });
+
+        eggGrid.appendChild(eggCard);
+      });
+
+      container.appendChild(eggGrid);
+    }
   }
 }

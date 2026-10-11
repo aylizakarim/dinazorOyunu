@@ -7,6 +7,7 @@ import { ShopSystem } from './systems/ShopSystem.js';
 import { QuestSystem } from './systems/QuestSystem.js';
 import { SaveManager } from './systems/SaveManager.js';
 import { TimeSystem } from './systems/TimeSystem.js';
+import { PetSystem } from './systems/PetSystem.js';
 import { UIManager } from './ui/UIManager.js';
 
 class Game {
@@ -24,6 +25,7 @@ class Game {
     this.shop = new ShopSystem(this.player, this.economy);
     this.quests = new QuestSystem(this.economy, this.world.housePlot, this.player);
     this.timeSystem = new TimeSystem(this);
+    this.petSystem = new PetSystem(this);
     this.saveManager = new SaveManager(
       this.player,
       this.economy,
@@ -31,7 +33,8 @@ class Game {
       this.shop,
       this.world.housePlot,
       this.quests,
-      this.timeSystem
+      this.timeSystem,
+      this.petSystem
     );
     this.uiManager = new UIManager(this);
 
@@ -308,8 +311,16 @@ class Game {
     for (let i = this.droppedItems.length - 1; i >= 0; i--) {
       const item = this.droppedItems[i];
       const alive = item.update(dt, this.player, (collected) => {
-        this.economy.add(collected.type, collected.amount);
-        this.soundManager.playItemPickup(collected.type);
+        if (collected.type === 'egg') {
+          const eggTypes = ['rex', 'tricera', 'ptero'];
+          const randomType = eggTypes[Math.floor(Math.random() * eggTypes.length)];
+          this.petSystem.findEgg(randomType);
+          this.soundManager.playUpgrade();
+          this.saveManager.save();
+        } else {
+          this.economy.add(collected.type, collected.amount);
+          this.soundManager.playItemPickup(collected.type);
+        }
 
         const typeLabels = {
           coin: `+${collected.amount} Altın 🪙`,
@@ -317,6 +328,7 @@ class Game {
           stone: `+${collected.amount} Taş 🪨`,
           gem: `+${collected.amount} Mücevher 💎`,
           fossil: `+${collected.amount} Fosil 🦴`,
+          egg: `+1 Dinozor Yumurtası! 🥚`,
         };
         const colors = {
           coin: '#facc15',
@@ -324,6 +336,7 @@ class Game {
           stone: '#cbd5e1',
           gem: '#f43f5e',
           fossil: '#e2e8f0',
+          egg: '#ec4899',
         };
 
         this.floatingTexts.push({
@@ -382,13 +395,14 @@ class Game {
     this.camera.x = Math.max(0, Math.min(this.camera.x, this.world.width - this.camera.width));
     this.camera.y = Math.max(0, Math.min(this.camera.y, this.world.height - this.camera.height));
 
-    // 7. Update Day/Night Time System
+    // 7. Update Day/Night Time System & Pet Companion System
     this.timeSystem.update(dt);
+    this.petSystem.update(dt);
 
     // 8. Update Auto-Save
     this.saveManager.update(dt);
 
-    // 8. Update Radar Pointer text
+    // 9. Update Radar Pointer text
     const distToVillage = Math.round(
       Math.hypot(this.player.x - 1100, this.player.y - 800) / 10
     );
@@ -435,11 +449,16 @@ class Game {
       ...this.world.npcs,
       ...this.world.resources,
     ];
+    if (this.petSystem.activePet) {
+      entities.push(this.petSystem.activePet);
+    }
     entities.sort((a, b) => a.y - b.y);
 
     entities.forEach(ent => {
       if (ent === this.player) {
         this.player.draw(this.ctx);
+      } else if (ent === this.petSystem.activePet) {
+        this.petSystem.draw(this.ctx);
       } else if (ent instanceof Player) {
         ent.draw(this.ctx);
       } else if (ent.draw) {
