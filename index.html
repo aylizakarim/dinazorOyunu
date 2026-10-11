@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Dinozor Dünyası - Kazı, Kostüm & Köy Macerası</title>
+  <link rel="stylesheet" href="/src/styles/main.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦖</text></svg>">
+</head>
+<body>
+  <div id="game-container">
+    <!-- Main Canvas -->
+    <canvas id="game-canvas"></canvas>
+
+    <!-- Top HUD -->
+    <div id="hud-top">
+      <!-- Currencies -->
+      <div class="resource-bar">
+        <div id="hud-time" class="res-item" title="Günün Saati ve Gece/Gündüz Döngüsü" style="background:rgba(255,255,255,0.08);color:#fde047;border:1px solid rgba(250,204,21,0.3)">
+          <span id="time-icon">☀️</span>
+          <span id="val-time">08:00</span>
+          <span id="val-day" style="font-size:11px;opacity:0.85;margin-left:3px">Gün 1</span>
+        </div>
+        <div class="res-item" title="Altın Para: Kazılardan ve evinden kazanırsın.">
+          <span class="res-icon">🪙</span>
+          <span id="val-coins">0</span>
+        </div>
+        <div class="res-item" title="Odun: Ağaçları kazarak elde edilir.">
+          <span class="res-icon">🪵</span>
+          <span id="val-wood">0</span>
+        </div>
+        <div class="res-item" title="Taş: Kayaları kazarak elde edilir.">
+          <span class="res-icon">🪨</span>
+          <span id="val-stone">0</span>
+        </div>
+        <div class="res-item" title="Mücevher: Nadir kaya ve kristal ağaçlardan çıkar.">
+          <span class="res-icon">💎</span>
+          <span id="val-gems">0</span>
+        </div>
+        <div class="res-item" title="Fosil: Gizemli çukurları kazınca çıkar.">
+          <span class="res-icon">🦴</span>
+          <span id="val-fossils">0</span>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="hud-buttons">
+        <button id="btn-shop" class="btn-hud" title="Dinozor Kostümleri ve Görünümleri">
+          <span>🛒</span> Kostümler
+        </button>
+        <button id="btn-upgrades" class="btn-hud" title="Karakter ve Kazma Geliştirmeleri">
+          <span>⚡</span> Geliştirmeler
+        </button>
+        <button id="btn-house" class="btn-hud" title="Köydeki Evini İnşa Et ve Büyüt">
+          <span>🏡</span> Evim
+        </button>
+        <button id="btn-quests" class="btn-hud" title="Görevler ve Hedefler">
+          <span>📜</span> Görevler
+          <span id="badge-quests" class="badge" style="display:none">0</span>
+        </button>
+        <button id="btn-sound" class="btn-hud" title="Müzik ve Sesleri Aç/Kapat">
+          🎵 Ses
+        </button>
+        <button id="btn-help" class="btn-hud" title="Oyun Rehberi">
+          ❓
+        </button>
+      </div>
+    </div>
+
+    <!-- Bottom Controls Hint -->
+    <div id="controls-hint">
+      <div class="key-hint">
+        <span class="key-badge">W A S D</span> / <span class="key-badge">Yön Tuşları</span> Hareket
+      </div>
+      <div class="key-hint">
+        <span class="key-badge">BOŞLUK</span> / <span class="key-badge">Sol Tık</span> Kaz & Parçala
+      </div>
+      <div class="key-hint">
+        <span class="key-badge">E</span> Oku / Etkileşim
+      </div>
+      <div class="key-hint">
+        <span class="key-badge" style="color:#c084fc">L</span> 🔊 Sesli Dinle
+      </div>
+    </div>
+
+    <!-- Radar Village Pointer -->
+    <div id="village-pointer" title="Dino Köyüne git">
+      🧭 Dino Köyü: 0m
+    </div>
+
+    <!-- Mobile Virtual Controls -->
+    <div id="mobile-controls">
+      <button id="btn-mobile-swing" class="btn-touch-action" title="Kaz">⛏️</button>
+      <button id="btn-mobile-interact" class="btn-touch-action" style="background:#0284c7" title="Etkileşim">💬</button>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container"></div>
+
+    <!-- ================= MODALS ================= -->
+
+    <!-- Shop Modal -->
+    <div id="modal-shop" class="modal-overlay">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-title"><span>🛒</span> Dinozor Kostüm Mağazası</div>
+          <button class="modal-close">&times;</button>
+        </div>
+        <div id="shop-tabs" class="modal-tabs"></div>
+        <div class="modal-body">
+          <div id="shop-items-container" class="item-grid"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upgrades Modal -->
+    <div id="modal-upgrades" class="modal-overlay">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-title"><span>⚡</span> Karakter ve Kazma Geliştirmeleri</div>
+          <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:4px">
+            Kazı yaparak topladığın altın, odun ve taşlarla dinozorunu güçlendir!
+          </p>
+          <div id="upgrades-container" class="item-grid"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- House Modal -->
+    <div id="modal-house" class="modal-overlay">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-title"><span>🏡</span> Köydeki Evim & İnşaat</div>
+          <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="house-preview-box">
+            <div id="house-current-info"></div>
+          </div>
+          <div id="house-upgrade-box"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quests Modal -->
+    <div id="modal-quests" class="modal-overlay">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-title"><span>📜</span> Dino Görevleri & Hedefler</div>
+          <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p style="font-size:13px;color:var(--text-muted)">
+            Görevleri tamamla, bolca altın, maden ve prestij ödülleri kazan!
+          </p>
+          <div id="quests-container" style="display:flex;flex-direction:column;gap:12px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NPC Dialog Modal -->
+    <div id="modal-dialog" class="modal-overlay">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div id="dialog-npc-title" class="modal-title">Muhtar Rex</div>
+          <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="dialog-content">
+            <div id="dialog-npc-avatar" class="dialog-avatar">🦖</div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:10px">
+              <div id="dialog-speech-text" class="dialog-speech"></div>
+              <div id="dialog-advice-text" style="font-size:13px;color:#fde047;background:rgba(234,179,8,0.1);padding:10px;border-radius:10px;border-left:3px solid #eab308"></div>
+            </div>
+          </div>
+          <div class="dialog-actions">
+            <button id="dialog-tts-btn" class="btn-action" style="background:#8b5cf6">🔊 Sesli Dinle [L]</button>
+            <button class="btn-action modal-close" style="background:#475569">Kapat</button>
+            <button id="dialog-action-btn" class="btn-action">İlerle</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="modal-help" class="modal-overlay">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-title"><span>❓</span> Dinozor Dünyası Nasıl Oynanır?</div>
+          <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body" style="font-size:14px;line-height:1.6;color:#e2e8f0;display:flex;flex-direction:column;gap:14px">
+          <div>
+            <h4 style="color:#facc15;margin-bottom:4px">🦖 1. Doğuş ve Keşif</h4>
+            <p>Sevimli bir dinozor olarak Dinozor Vadisi'nde doğdun! WASD veya Ok Tuşları ile haritada özgürce dolaşabilirsin.</p>
+          </div>
+          <div>
+            <h4 style="color:#4ade80;margin-bottom:4px">⛏️ 2. Kazı ve Kaynak Toplama</h4>
+            <p><strong>Ağaçlar:</strong> Odun ve Altın Para düşürür.<br>
+               <strong>Kayalar:</strong> Taş, Demir, Altın ve Mücevher düşürür.<br>
+               <strong>Kazı Çukurları:</strong> Gizli hazineler, antik dino kemikleri ve mücevherler saklar.<br>
+               Parçaladığın nesnelerin kaynakları otomatik olarak mıknatısla sana çekilir!
+            </p>
+          </div>
+          <div>
+            <h4 style="color:#38bdf8;margin-bottom:4px">⚡ 3. Karakter Geliştirme</h4>
+            <p>Topladığın paralarla <strong>Kazma Gücü</strong>, <strong>Kazma Hızı</strong>, <strong>Koşu Hızı</strong>, <strong>Bereket & Şans</strong> ve <strong>Altın Mıknatısı</strong> özelliklerini artır. Kazmanı Tahtadan Elmasa dönüştür!</p>
+          </div>
+          <div>
+            <h4 style="color:#ec4899;margin-bottom:4px">👗 4. Kostüm ve Görünümler</h4>
+            <p>Kovboy, Aşçı, Madenci, Korsan şapkaları; şövalye zırhı, pelerinler ve farklı renklerdeki dinozor türleriyle tarzını yansıt.</p>
+          </div>
+          <div>
+            <h4 style="color:#eab308;margin-bottom:4px">🏡 5. Köyde Ev İnşaatı ve Dino Komşular</h4>
+            <p>Köy meydanındaki <strong>Muhtar Rex</strong>, <strong>Tricera Usta</strong>, <strong>Ptero Terzi</strong> ve <strong>Stego Madenci</strong> ile konuş. Köyde sana ayrılan arsaya önce kamp çadırını kur, ardından ahşap kulübe ve devasa Dinozor Sarayını inşa et! Evin sana sürekli <strong>pasif altın geliri</strong> sağlayacaktır.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,332 @@
+export class NPC {
+  constructor(x, y, id, name, title, dinoType = 'rex') {
+    this.x = x;
+    this.y = y;
+    this.id = id;
+    this.name = name;
+    this.title = title;
+    this.dinoType = dinoType; // 'chief', 'carpenter', 'tailor', 'miner'
+    this.radius = 24;
+    this.bobTimer = Math.random() * 5;
+    this.facing = 1;
+    this.interactionRadius = 55;
+  }
+
+  update(dt, player) {
+    this.bobTimer += dt * 3;
+
+    // Face towards player when nearby
+    const dx = player.x - this.x;
+    if (Math.abs(dx) > 10) {
+      this.facing = dx > 0 ? 1 : -1;
+    }
+  }
+
+  isNear(player) {
+    const dist = Math.hypot(player.x - this.x, player.y - this.y);
+    return dist <= this.interactionRadius;
+  }
+
+  getDialog() {
+    switch (this.id) {
+      case 'chief':
+        return {
+          title: `${this.name} (${this.title})`,
+          greeting: 'Hoş geldin genç dinozor! Vadimize hoş geldin. Yeri, ağaçları ve taşları kazarak altın ve maden toplayabilirsin.',
+          advice: 'Köyümüzde bir yer edinmek için öncelikle kendine bir ev inşa etmelisin! Tricera Usta ile konuşursan sana kulübeni yapman için rehberlik eder.',
+          actionBtn: 'Görevleri Gör',
+          actionType: 'quests',
+        };
+      case 'carpenter':
+        return {
+          title: `${this.name} (${this.title})`,
+          greeting: 'Selam küçük dostum! Ben bu köyün marangozu ve mimarıyım. Elinde yeterince odun ve taş varsa harika evler inşa edebilirim!',
+          advice: 'Aşağıdaki arsayı görüyor musun? Orası senin için ayrıldı. Odun ve taş toplayıp çadırını, ardından ahşap kulübeni ve dev dinozor sarayını kurabilirsin!',
+          actionBtn: 'Ev İnşaatını Aç',
+          actionType: 'house',
+        };
+      case 'tailor':
+        return {
+          title: `${this.name} (${this.title})`,
+          greeting: 'Aman Tanrım, ne kadar tatlı bir dinozor! Ama biraz sade kalmışsın tatlım. Modaya ayak uydurmalısın!',
+          advice: 'Kazılardan kazandığın altınlarla sana süper şapkalar, pelerinler, smokinler ve renkli görünümler verebilirim. Bir göz atmaya ne dersin?',
+          actionBtn: 'Kostüm Mağazası',
+          actionType: 'shop',
+        };
+      case 'miner':
+        return {
+          title: `${this.name} (${this.title})`,
+          greeting: 'Kazma seslerini duydun mu? İşte gerçek bir madencinin müziği! Yerin altında ne hazineler yatıyor bir bilsen.',
+          advice: 'Kazma gücünü ve hızını artırırsan en sert altın kayalarını bile saniyeler içinde un ufak edebilirsin. Kazandığın paralarla kendini geliştirmeyi unutma!',
+          actionBtn: 'Geliştirmeleri Aç',
+          actionType: 'upgrades',
+        };
+      default:
+        return {
+          title: this.name,
+          greeting: 'Merhaba dino dostum!',
+          advice: 'Bugün kazı yapmak için harika bir gün!',
+          actionBtn: 'Tamam',
+          actionType: 'none',
+        };
+    }
+  }
+
+  draw(ctx, player) {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+
+    const bob = Math.sin(this.bobTimer) * 2;
+    ctx.translate(0, bob);
+
+    // Shadow
+    ctx.save();
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.22)';
+    ctx.beginPath();
+    ctx.ellipse(0, 8 - bob, 18, 7, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.scale(this.facing, 1);
+
+    // Draw specific Dino Villager
+    if (this.dinoType === 'chief') {
+      this.drawChief(ctx);
+    } else if (this.dinoType === 'carpenter') {
+      this.drawCarpenter(ctx);
+    } else if (this.dinoType === 'tailor') {
+      this.drawTailor(ctx);
+    } else if (this.dinoType === 'miner') {
+      this.drawMiner(ctx);
+    }
+
+    ctx.restore();
+
+    // Interaction Prompt if player is near
+    if (this.isNear(player)) {
+      this.drawPrompt(ctx);
+    }
+  }
+
+  drawPrompt(ctx) {
+    ctx.save();
+    const promptY = this.y - 48 + Math.sin(this.bobTimer * 2) * 3;
+
+    // Speech bubble background
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+    ctx.beginPath();
+    ctx.roundRect(this.x - 74, promptY - 14, 148, 26, 8);
+    ctx.fill();
+    ctx.strokeStyle = '#facc15';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Little triangle pointer
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+    ctx.beginPath();
+    ctx.moveTo(this.x - 5, promptY + 12);
+    ctx.lineTo(this.x + 5, promptY + 12);
+    ctx.lineTo(this.x, promptY + 18);
+    ctx.closePath();
+    ctx.fill();
+
+    // Text
+    ctx.fillStyle = '#fde047';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('💬 [E] Oku  |  🔊 [L] Sesli Dinle', this.x, promptY);
+
+    ctx.restore();
+  }
+
+  drawChief(ctx) {
+    // Wise Orange/Brown Rex with Chief Golden Medal & Glasses
+    ctx.fillStyle = '#b45309';
+    // Body
+    ctx.beginPath();
+    ctx.ellipse(0, -6, 15, 17, 0.1, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Underbelly
+    ctx.fillStyle = '#fde68a';
+    ctx.beginPath();
+    ctx.ellipse(5, -4, 8, 12, 0.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Head
+    ctx.fillStyle = '#b45309';
+    ctx.beginPath();
+    ctx.roundRect(-6, -32, 20, 18, 6);
+    ctx.fill();
+
+    // White beard / wisdom whiskers
+    ctx.fillStyle = '#f8fafc';
+    ctx.beginPath();
+    ctx.arc(8, -16, 5, 0, Math.PI);
+    ctx.fill();
+
+    // Eye with spectacles
+    ctx.strokeStyle = '#f59e0b';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(4, -25, 4, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.arc(4, -25, 1.8, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Chief Gold Necklace
+    ctx.strokeStyle = '#facc15';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(4, -13, 8, 0.2, Math.PI * 0.8);
+    ctx.stroke();
+    ctx.fillStyle = '#ef4444';
+    ctx.beginPath();
+    ctx.arc(4, -5, 3.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  drawCarpenter(ctx) {
+    // Blue Triceratops with big frill and wooden hammer
+    ctx.fillStyle = '#0284c7';
+    // Body
+    ctx.beginPath();
+    ctx.ellipse(0, -5, 16, 16, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Underbelly
+    ctx.fillStyle = '#bae6fd';
+    ctx.beginPath();
+    ctx.ellipse(4, -3, 8, 11, 0.1, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Triceratops Frill (Large crown shield)
+    ctx.fillStyle = '#0369a1';
+    ctx.beginPath();
+    ctx.arc(-2, -26, 14, -Math.PI * 0.7, Math.PI * 0.2);
+    ctx.lineTo(2, -26);
+    ctx.closePath();
+    ctx.fill();
+
+    // Head
+    ctx.fillStyle = '#0284c7';
+    ctx.beginPath();
+    ctx.roundRect(-2, -30, 18, 16, 6);
+    ctx.fill();
+
+    // Horns
+    ctx.fillStyle = '#f8fafc';
+    // Brow horn
+    ctx.beginPath();
+    ctx.moveTo(8, -30);
+    ctx.lineTo(16, -36);
+    ctx.lineTo(11, -26);
+    ctx.closePath();
+    ctx.fill();
+    // Nose horn
+    ctx.beginPath();
+    ctx.moveTo(14, -22);
+    ctx.lineTo(21, -24);
+    ctx.lineTo(15, -17);
+    ctx.closePath();
+    ctx.fill();
+
+    // Red Carpenter Bandana
+    ctx.fillStyle = '#dc2626';
+    ctx.fillRect(-2, -18, 14, 4);
+
+    // Eye
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.arc(6, -24, 2.2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  drawTailor(ctx) {
+    // Magenta Pterodactyl with chic feather crest and tape measure
+    ctx.fillStyle = '#db2777';
+    ctx.beginPath();
+    ctx.ellipse(0, -6, 13, 15, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Head with crest
+    ctx.fillStyle = '#be185d';
+    ctx.beginPath();
+    ctx.moveTo(-16, -34);
+    ctx.lineTo(4, -24);
+    ctx.lineTo(14, -20);
+    ctx.lineTo(4, -16);
+    ctx.closePath();
+    ctx.fill();
+
+    // Long Beak
+    ctx.fillStyle = '#f59e0b';
+    ctx.beginPath();
+    ctx.moveTo(10, -22);
+    ctx.lineTo(24, -18);
+    ctx.lineTo(10, -15);
+    ctx.closePath();
+    ctx.fill();
+
+    // Eye with chic mascara
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.arc(6, -21, 2.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Yellow tape measure around neck
+    ctx.strokeStyle = '#facc15';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(2, -12, 7, 0.1, Math.PI * 0.9);
+    ctx.stroke();
+  }
+
+  drawMiner(ctx) {
+    // Green/Amber Stegosaurus with back plates & Miner Helmet
+    ctx.fillStyle = '#059669';
+    ctx.beginPath();
+    ctx.ellipse(0, -6, 17, 16, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Stegosaurus Back Plates
+    ctx.fillStyle = '#d97706';
+    const plates = [-12, -4, 4, 12];
+    plates.forEach(px => {
+      ctx.beginPath();
+      ctx.moveTo(px - 4, -18);
+      ctx.lineTo(px, -27);
+      ctx.lineTo(px + 4, -18);
+      ctx.closePath();
+      ctx.fill();
+    });
+
+    // Head
+    ctx.fillStyle = '#059669';
+    ctx.beginPath();
+    ctx.roundRect(4, -26, 14, 14, 5);
+    ctx.fill();
+
+    // Yellow Miner Helmet with shining light
+    ctx.fillStyle = '#eab308';
+    ctx.beginPath();
+    ctx.arc(10, -28, 8, Math.PI, 0);
+    ctx.fill();
+    ctx.fillRect(1, -28, 18, 3);
+
+    // Helmet Lamp
+    ctx.fillStyle = '#38bdf8';
+    ctx.beginPath();
+    ctx.arc(16, -28, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Eye
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.arc(11, -21, 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
