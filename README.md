@@ -57,8 +57,18 @@ Sevimli dinozor karakterimizle doğayı keşfettiğimiz, ağaçları, kayaları 
 
 ## 🚀 Projeyi Çalıştırma
 
-Geliştirme sunucusunu başlatmak için terminalden:
+Geliştirme sunucusunu başlatmak için:
+- Klasördeki `baslat.bat` dosyasına çift tıklayabilir veya
+- Terminalden aşağıdaki komutu çalıştırabilirsiniz:
 ```bash
 npm run dev
 ```
-Tarayıcında **`http://localhost:5173`** adresine giderek oyunu hemen oynayabilirsin!
+Tarayıcınızda **`http://localhost:5173`** adresine giderek oyunu hemen oynayabilirsiniz!
+
+---
+
+## 👥 Katkıda Bulunanlar (Contributors)
+
+* 🦖 [**@aylizakarim**](https://github.com/aylizakarim) - Proje Sahibi & Geliştirici
+* 🦕 [**@mehmetakarim**](https://github.com/mehmetakarim) - Katkıda Bulunan & Geliştirici
+
