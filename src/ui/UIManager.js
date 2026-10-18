@@ -1,5 +1,6 @@
 import confetti from 'canvas-confetti';
 import { HousePlot } from '../entities/HousePlot.js';
+import { FURNITURE_RECIPES } from '../entities/HouseInterior.js';
 import { ttsManager } from '../audio/ttsManager.js';
 
 export class UIManager {
@@ -21,14 +22,44 @@ export class UIManager {
     document.getElementById('btn-quests')?.addEventListener('click', () => this.openQuestsModal());
     document.getElementById('btn-house')?.addEventListener('click', () => this.openHouseModal());
     document.getElementById('btn-pet')?.addEventListener('click', () => this.openPetModal());
+    document.getElementById('btn-backup')?.addEventListener('click', () => this.openBackupModal());
     document.getElementById('btn-sound')?.addEventListener('click', () => this.toggleSound());
     document.getElementById('btn-help')?.addEventListener('click', () => this.openHelpModal());
 
+    // Backup actions
+    document.getElementById('btn-export-save')?.addEventListener('click', () => {
+      this.game.saveManager.exportSaveToFile();
+      this.showToast('💾 dino_save.json başarıyla indirildi!');
+    });
+
+    document.getElementById('btn-import-save')?.addEventListener('click', () => {
+      document.getElementById('input-import-save')?.click();
+    });
+
+    document.getElementById('input-import-save')?.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (file) {
+        this.game.saveManager.importSaveFromFile(file, (success, msg) => {
+          if (success) {
+            this.showToast(`✅ ${msg}`);
+            this.updateHUD();
+            this.closeAllModals();
+          } else {
+            this.showToast(`❌ ${msg}`);
+          }
+        });
+      }
+    });
+
     // Radar pointer click to walk to village
     document.getElementById('village-pointer')?.addEventListener('click', () => {
-      this.game.player.x = 1100;
-      this.game.player.y = 880;
-      this.showToast('📍 Köy Meydanına Işınlandın!');
+      if (this.game.currentScene === 'interior') {
+        this.game.exitHouse();
+      } else {
+        this.game.player.x = 1100;
+        this.game.player.y = 880;
+        this.showToast('📍 Köy Meydanına Işınlandın!');
+      }
     });
 
     // Modal Close buttons
@@ -127,6 +158,18 @@ export class UIManager {
         } else {
           petBadge.style.display = 'none';
         }
+      }
+    }
+
+    // Well-rested buff display
+    const buffEl = document.getElementById('hud-buff');
+    const buffTimerEl = document.getElementById('buff-timer');
+    if (buffEl && this.game.player) {
+      if (this.game.player.restedBuffTimer > 0) {
+        buffEl.style.display = 'block';
+        if (buffTimerEl) buffTimerEl.textContent = Math.ceil(this.game.player.restedBuffTimer);
+      } else {
+        buffEl.style.display = 'none';
       }
     }
   }
@@ -402,6 +445,181 @@ export class UIManager {
         });
       }
     }
+
+    // House Interior Enter Button Box
+    const enterBox = document.getElementById('house-enter-box');
+    if (enterBox) {
+      if (house.tier >= 1) {
+        enterBox.innerHTML = `
+          <button id="btn-enter-interior" class="btn-action" style="width:100%;background:#059669;padding:12px 16px;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px">
+            <span>🏡</span> Evin İçine Gir (Oturma & Yatak Odası)
+          </button>
+        `;
+        document.getElementById('btn-enter-interior')?.addEventListener('click', () => {
+          this.closeAllModals();
+          this.game.enterHouse();
+        });
+      } else {
+        enterBox.innerHTML = `
+          <div style="background:rgba(234,179,8,0.1);border:1px dashed #eab308;padding:10px 14px;border-radius:10px;text-align:center;font-size:13px;color:#fde047">
+            ⛺ Evinin içine girebilmek için önce ilk çadırını inşa etmelisin!
+          </div>
+        `;
+      }
+    }
+  }
+
+  // --- STORAGE CHEST MODAL ---
+  openChestModal() {
+    this.renderChest();
+    this.openModal('modal-chest');
+  }
+
+  renderChest() {
+    const container = document.getElementById('chest-items-container');
+    if (!container || !this.game.storageSystem) return;
+
+    container.innerHTML = '';
+
+    const resTypes = [
+      { key: 'coins', name: 'Altın Para', icon: '🪙', color: '#facc15' },
+      { key: 'wood', name: 'Odun', icon: '🪵', color: '#d97706' },
+      { key: 'stone', name: 'Taş', icon: '🪨', color: '#94a3b8' },
+      { key: 'gems', name: 'Mücevher', icon: '💎', color: '#f43f5e' },
+      { key: 'fossils', name: 'Fosil', icon: '🦴', color: '#e2e8f0' },
+    ];
+
+    resTypes.forEach((res) => {
+      const invCount = this.game.economy[res.key] !== undefined ? this.game.economy[res.key] : (res.key === 'coins' ? this.game.economy.coins : 0);
+      const chestCount = this.game.storageSystem.get(res.key);
+
+      const row = document.createElement('div');
+      row.style.display = 'flex';
+      row.style.alignItems = 'center';
+      row.style.justifyContent = 'space-between';
+      row.style.padding = '10px 14px';
+      row.style.background = 'rgba(30, 41, 59, 0.7)';
+      row.style.borderRadius = '12px';
+      row.style.border = '1px solid rgba(255, 255, 255, 0.1)';
+
+      row.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;min-width:140px">
+          <span style="font-size:22px">${res.icon}</span>
+          <div>
+            <div style="font-weight:700;color:${res.color};font-size:14px">${res.name}</div>
+            <div style="font-size:12px;color:#94a3b8">
+              Çanta: <strong style="color:#fff">${invCount}</strong> | Sandık: <strong style="color:#4ade80">${chestCount}</strong>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+          <button class="btn-action btn-dep-10" style="padding:6px 10px;font-size:12px;background:#0284c7" ${invCount < 1 ? 'disabled' : ''}>+10 Koy</button>
+          <button class="btn-action btn-dep-all" style="padding:6px 10px;font-size:12px;background:#0369a1" ${invCount < 1 ? 'disabled' : ''}>Tümü</button>
+          <button class="btn-action btn-with-10" style="padding:6px 10px;font-size:12px;background:#d97706" ${chestCount < 1 ? 'disabled' : ''}>-10 Al</button>
+          <button class="btn-action btn-with-all" style="padding:6px 10px;font-size:12px;background:#b45309" ${chestCount < 1 ? 'disabled' : ''}>Tümü</button>
+        </div>
+      `;
+
+      row.querySelector('.btn-dep-10').addEventListener('click', () => {
+        this.game.storageSystem.deposit(res.key, 10, this.game.economy, this.game.soundManager);
+        this.updateHUD();
+        this.renderChest();
+        this.game.saveManager.save();
+      });
+
+      row.querySelector('.btn-dep-all').addEventListener('click', () => {
+        this.game.storageSystem.depositAll(res.key, this.game.economy, this.game.soundManager);
+        this.updateHUD();
+        this.renderChest();
+        this.game.saveManager.save();
+      });
+
+      row.querySelector('.btn-with-10').addEventListener('click', () => {
+        this.game.storageSystem.withdraw(res.key, 10, this.game.economy, this.game.soundManager);
+        this.updateHUD();
+        this.renderChest();
+        this.game.saveManager.save();
+      });
+
+      row.querySelector('.btn-with-all').addEventListener('click', () => {
+        this.game.storageSystem.withdrawAll(res.key, this.game.economy, this.game.soundManager);
+        this.updateHUD();
+        this.renderChest();
+        this.game.saveManager.save();
+      });
+
+      container.appendChild(row);
+    });
+  }
+
+  // --- FURNITURE CRAFTING MODAL ---
+  openFurnitureModal() {
+    this.renderFurniture();
+    this.openModal('modal-furniture');
+  }
+
+  renderFurniture() {
+    const container = document.getElementById('furniture-items-container');
+    if (!container || !this.game.houseInterior) return;
+
+    container.innerHTML = '';
+
+    FURNITURE_RECIPES.forEach((rec) => {
+      const card = document.createElement('div');
+      card.className = 'shop-card';
+
+      const isCrafted = this.game.houseInterior.isCrafted(rec.id);
+      const canAfford = this.game.economy.canAfford(rec.cost);
+      const tierMet = this.game.world.housePlot.tier >= rec.tierReq;
+
+      const costParts = [];
+      if (rec.cost.coins) costParts.push(`🪙 ${rec.cost.coins}`);
+      if (rec.cost.wood) costParts.push(`🪵 ${rec.cost.wood}`);
+      if (rec.cost.stone) costParts.push(`🪨 ${rec.cost.stone}`);
+      if (rec.cost.gems) costParts.push(`💎 ${rec.cost.gems}`);
+      if (rec.cost.fossils) costParts.push(`🦴 ${rec.cost.fossils}`);
+
+      card.innerHTML = `
+        <div class="card-top">
+          <div class="card-icon" style="font-size:32px">${rec.icon}</div>
+          <div class="card-info">
+            <h4 style="color:#facc15">${rec.name}</h4>
+            <p>${rec.desc}</p>
+          </div>
+        </div>
+        <div class="card-bottom">
+          <div style="font-size:12px;font-weight:700;color:#fde047">
+            ${isCrafted ? '<span style="color:#22c55e">YERLEŞTİRİLDİ ✅</span>' : (!tierMet ? `<span style="color:#f87171">Aşama ${rec.tierReq} Ev Gerekir</span>` : costParts.join(' • '))}
+          </div>
+          <button class="btn-action btn-craft-furniture" ${isCrafted || !canAfford || !tierMet ? 'disabled' : ''}>
+            ${isCrafted ? 'Mevcut' : 'Üret & Yerleştir 🔨'}
+          </button>
+        </div>
+      `;
+
+      card.querySelector('.btn-craft-furniture')?.addEventListener('click', () => {
+        if (this.game.houseInterior.craft(rec.id, this.game.economy, this.game.soundManager)) {
+          confetti({
+            particleCount: 60,
+            spread: 60,
+            origin: { y: 0.6 }
+          });
+          this.showToast(`✨ "${rec.name}" başarıyla üretildi ve evine yerleştirildi!`);
+          this.updateHUD();
+          this.renderFurniture();
+          this.game.saveManager.save();
+        } else {
+          this.showToast('❌ Malzemeler veya ev seviyesi yetersiz!');
+        }
+      });
+
+      container.appendChild(card);
+    });
+  }
+
+  // --- BACKUP SAVE MODAL ---
+  openBackupModal() {
+    this.openModal('modal-backup');
   }
 
   // --- QUESTS MODAL ---

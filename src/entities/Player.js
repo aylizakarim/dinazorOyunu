@@ -38,13 +38,27 @@ export class Player {
     // Footstep particle timer
     this.stepParticleTimer = 0;
     this.audioFootstepTimer = 0;
+
+    // Buffs (e.g. from sleeping in cozy bed)
+    this.restedBuffTimer = 0; // seconds remaining
   }
 
   getSpeed() {
-    return this.baseSpeed;
+    const buff = this.restedBuffTimer > 0 ? 1.25 : 1.0;
+    return this.baseSpeed * buff;
+  }
+
+  getMiningSpeed() {
+    const buff = this.restedBuffTimer > 0 ? 0.75 : 1.0;
+    return Math.max(0.08, this.miningSpeed * buff);
   }
 
   update(dt, input, world, particles, soundManager) {
+    // Buff timer
+    if (this.restedBuffTimer > 0) {
+      this.restedBuffTimer -= dt;
+    }
+
     // Cooldown timers
     if (this.swingCooldown > 0) this.swingCooldown -= dt;
     if (this.swingTimer > 0) {
@@ -151,7 +165,7 @@ export class Player {
     if (this.swingCooldown <= 0) {
       this.isSwinging = true;
       this.swingTimer = this.swingDuration;
-      this.swingCooldown = this.miningSpeed;
+      this.swingCooldown = this.getMiningSpeed();
       return true;
     }
     return false;

@@ -62,12 +62,20 @@
           <span>📜</span> Görevler
           <span id="badge-quests" class="badge" style="display:none">0</span>
         </button>
+        <button id="btn-backup" class="btn-hud" title="Kayıt Dosyası İndir / Yükle (JSON)">
+          <span>💾</span> Kayıt
+        </button>
         <button id="btn-sound" class="btn-hud" title="Müzik ve Sesleri Aç/Kapat">
           🎵 Ses
         </button>
         <button id="btn-help" class="btn-hud" title="Oyun Rehberi">
           ❓
         </button>
+      </div>
+
+      <!-- Active Buff Badge -->
+      <div id="hud-buff" style="display:none;position:absolute;top:60px;right:16px;background:rgba(234,179,8,0.2);border:1.5px solid #facc15;color:#facc15;padding:6px 12px;border-radius:12px;font-size:12px;font-weight:700;backdrop-filter:blur(6px);pointer-events:auto">
+        ✨ İyi Dinlenmiş: <span id="buff-timer">180</span>s (+%25 Hız)
       </div>
     </div>
 
@@ -144,7 +152,67 @@
           <div class="house-preview-box">
             <div id="house-current-info"></div>
           </div>
+          <div id="house-enter-box" style="margin-bottom:12px"></div>
           <div id="house-upgrade-box"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Storage Chest Modal -->
+    <div id="modal-chest" class="modal-overlay">
+      <div class="modal-card" style="max-width:540px">
+        <div class="modal-header">
+          <div class="modal-title"><span>📦</span> Ev Depolama Sandığı</div>
+          <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">
+            Envanterindeki fazla odun, taş, mücevher ve fosilleri sandığında güvenle saklayabilir ve dilediğin an geri alabilirsin!
+          </p>
+          <div id="chest-items-container" style="display:flex;flex-direction:column;gap:10px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Furniture Crafting Modal -->
+    <div id="modal-furniture" class="modal-overlay">
+      <div class="modal-card" style="max-width:600px">
+        <div class="modal-header">
+          <div class="modal-title"><span>🔨</span> Mobilya Marangozluğu & Dekorasyon</div>
+          <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">
+            Topladığın malzemelerle evini döşe, yatakta uyuyarak dinlen, şöminede ısın ve fosillerini sergile!
+          </p>
+          <div id="furniture-items-container" class="item-grid"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Backup / JSON Save Modal -->
+    <div id="modal-backup" class="modal-overlay">
+      <div class="modal-card" style="max-width:520px">
+        <div class="modal-header">
+          <div class="modal-title"><span>💾</span> Kayıt Dosyası Yönetimi (JSON)</div>
+          <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
+          <p style="font-size:13px;color:var(--text-muted)">
+            Oyununu farklı bir tarayıcıya taşımak veya yedeklemek için JSON formatında kayıt dosyasını indirebilir veya daha önce kaydettiğin dosyayı yükleyebilirsin.
+          </p>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin:8px 0">
+            <button id="btn-export-save" class="btn-action" style="background:#0284c7;padding:12px 18px;font-size:14px">
+              📥 Kayıt Dosyası İndir (JSON)
+            </button>
+            <button id="btn-import-save" class="btn-action" style="background:#10b981;padding:12px 18px;font-size:14px">
+              📤 Kayıt Dosyası Yükle (.json)
+            </button>
+            <input type="file" id="input-import-save" accept=".json" style="display:none">
+          </div>
+          <div style="font-size:12px;color:#94a3b8;background:rgba(255,255,255,0.06);padding:10px 14px;border-radius:10px;line-height:1.5;border:1px solid rgba(255,255,255,0.1)">
+            💡 <strong>Not:</strong> İndirdiğin <code>dino_save.json</code> dosyasını Chrome, Edge, Safari veya başka bir bilgisayarda "Yükle" butonuna tıklayarak doğrudan yükleyebilir ve tüm dinozor ilerlemeni koruyabilirsin!
+          </div>
         </div>
       </div>
     </div>

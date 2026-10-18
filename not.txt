@@ -1,0 +1,1 @@
+1. Oyun şuan tarayıcıda çalıştığı için farklı bir tarayıcıda açıldığında istatistikler ve envanter sıfırlanıyor. Bence şuanki geliştirme süreci için save.json gibi bir kullanıcı kayıt işlemi yapalım geçici olarak. ileri süreçte zaten kullanıcı kayıt sistemi gibi durumları konuşuyor olacağız.

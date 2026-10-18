@@ -12,6 +12,19 @@ export class TimeSystem {
     this.fallingMeteors = [];
   }
 
+  get isNight() {
+    return this.currentTime > 20.5 || this.currentTime < 5.5;
+  }
+
+  advanceToMorning() {
+    this.currentTime = 8.0;
+    this.dayCount++;
+    this.meteorTriggeredTonight = false;
+    if (this.game.uiManager) {
+      this.game.uiManager.updateHUD();
+    }
+  }
+
   update(dt) {
     // Progress in-game time (24 hours per dayDuration)
     const hoursPerSec = 24 / this.dayDuration;

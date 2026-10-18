@@ -173,7 +173,7 @@ export class HousePlot {
 
     ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
     ctx.beginPath();
-    ctx.roundRect(promptX - 55, promptY - 14, 110, 26, 8);
+    ctx.roundRect(promptX - 65, promptY - 14, 130, 26, 8);
     ctx.fill();
     ctx.strokeStyle = '#22c55e';
     ctx.lineWidth = 1.5;
@@ -183,7 +183,8 @@ export class HousePlot {
     ctx.font = 'bold 12px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('🏡 [E] Ev Yönetimi', promptX, promptY - 1);
+    const label = this.tier >= 1 ? '🏡 [E] Evin İçine Gir' : '🔨 [E] Çadır İnşa Et';
+    ctx.fillText(label, promptX, promptY - 1);
 
     ctx.restore();
   }

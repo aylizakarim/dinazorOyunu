@@ -178,6 +178,48 @@ class SoundManager {
     }
   }
 
+  playDoor() {
+    this.ensureContext();
+    if (!this.enabled || !this.ctx) return;
+    // Wooden door latch and swing
+    this.playTone(190, 0.12, 'triangle', 0.12, 40);
+    setTimeout(() => {
+      this.playTone(280, 0.18, 'sine', 0.14, -80);
+    }, 60);
+  }
+
+  playChest() {
+    this.ensureContext();
+    if (!this.enabled || !this.ctx) return;
+    // Wooden chest lid click
+    this.playTone(340, 0.08, 'triangle', 0.14, 120);
+    setTimeout(() => {
+      this.playTone(520, 0.12, 'sine', 0.12, 80);
+    }, 45);
+  }
+
+  playSleep() {
+    this.ensureContext();
+    if (!this.enabled || !this.ctx) return;
+    // Gentle lullaby chime (G4, B4, D5, G5)
+    const notes = [392.00, 493.88, 587.33, 783.99];
+    notes.forEach((freq, idx) => {
+      setTimeout(() => {
+        this.playTone(freq, 0.45, 'sine', 0.12);
+      }, idx * 110);
+    });
+  }
+
+  playFireplaceWarm() {
+    this.ensureContext();
+    if (!this.enabled || !this.ctx) return;
+    // Crackling embers
+    this.playTone(140, 0.08, 'sawtooth', 0.06, -30);
+    setTimeout(() => {
+      this.playTone(260, 0.06, 'triangle', 0.07, 40);
+    }, 50);
+  }
+
   // Cozy cheerful background tune (procedural gentle melody)
   startBGM() {
     if (this.bgmPlaying || !this.enabled) return;

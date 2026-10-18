@@ -39,4 +39,15 @@ export class EconomySystem {
     if (this.onUpdate) this.onUpdate(this);
     return true;
   }
+
+  spendResource(type, amount = 1) {
+    if (amount <= 0) return 0;
+    const prop = type === 'coin' || type === 'coins' ? 'coins' : type;
+    if (this[prop] === undefined) return 0;
+    const actual = Math.min(amount, this[prop]);
+    this[prop] -= actual;
+    if (this.onUpdate) this.onUpdate(this);
+    return actual;
+  }
 }
+

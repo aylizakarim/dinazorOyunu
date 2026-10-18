@@ -8,6 +8,8 @@ import { QuestSystem } from './systems/QuestSystem.js';
 import { SaveManager } from './systems/SaveManager.js';
 import { TimeSystem } from './systems/TimeSystem.js';
 import { PetSystem } from './systems/PetSystem.js';
+import { StorageSystem } from './systems/StorageSystem.js';
+import { HouseInterior } from './entities/HouseInterior.js';
 import { UIManager } from './ui/UIManager.js';
 
 class Game {
@@ -15,6 +17,10 @@ class Game {
     this.canvas = document.getElementById('game-canvas');
     this.ctx = this.canvas.getContext('2d');
     this.isPaused = false;
+
+    // Current Scene: 'world' or 'interior'
+    this.currentScene = 'world';
+    this.savedWorldPos = { x: 1100, y: 880 };
 
     // Entities and Systems
     this.soundManager = soundManager;
@@ -26,6 +32,9 @@ class Game {
     this.quests = new QuestSystem(this.economy, this.world.housePlot, this.player);
     this.timeSystem = new TimeSystem(this);
     this.petSystem = new PetSystem(this);
+    this.storageSystem = new StorageSystem();
+    this.houseInterior = new HouseInterior(this);
+
     this.saveManager = new SaveManager(
       this.player,
       this.economy,
@@ -34,7 +43,9 @@ class Game {
       this.world.housePlot,
       this.quests,
       this.timeSystem,
-      this.petSystem
+      this.petSystem,
+      this.storageSystem,
+      this.houseInterior
     );
     this.uiManager = new UIManager(this);
 
@@ -153,27 +164,35 @@ class Game {
     let touchStartY = 0;
     let isTouching = false;
 
-    this.canvas.addEventListener('touchstart', (e) => {
-      this.soundManager.ensureContext();
-      if (e.touches.length > 0) {
-        touchStartX = e.touches[0].clientX;
-        touchStartY = e.touches[0].clientY;
-        isTouching = true;
-      }
-    }, { passive: false });
+    this.canvas.addEventListener(
+      'touchstart',
+      (e) => {
+        this.soundManager.ensureContext();
+        if (e.touches.length > 0) {
+          touchStartX = e.touches[0].clientX;
+          touchStartY = e.touches[0].clientY;
+          isTouching = true;
+        }
+      },
+      { passive: false }
+    );
 
-    this.canvas.addEventListener('touchmove', (e) => {
-      if (!isTouching || e.touches.length === 0) return;
-      const curX = e.touches[0].clientX;
-      const curY = e.touches[0].clientY;
-      const dx = curX - touchStartX;
-      const dy = curY - touchStartY;
-      const dist = Math.hypot(dx, dy);
+    this.canvas.addEventListener(
+      'touchmove',
+      (e) => {
+        if (!isTouching || e.touches.length === 0) return;
+        const curX = e.touches[0].clientX;
+        const curY = e.touches[0].clientY;
+        const dx = curX - touchStartX;
+        const dy = curY - touchStartY;
+        const dist = Math.hypot(dx, dy);
 
-      if (dist > 15) {
-        this.input.touchDir = { x: dx / dist, y: dy / dist };
-      }
-    }, { passive: false });
+        if (dist > 15) {
+          this.input.touchDir = { x: dx / dist, y: dy / dist };
+        }
+      },
+      { passive: false }
+    );
 
     const endTouch = () => {
       isTouching = false;
@@ -183,7 +202,49 @@ class Game {
     this.canvas.addEventListener('touchcancel', endTouch);
   }
 
+  enterHouse() {
+    if (this.world.housePlot.tier < 1) {
+      this.uiManager.showToast('⚠️ Evin içine girebilmek için önce ilk çadırını inşa etmelisin!');
+      this.uiManager.openHouseModal();
+      return;
+    }
+
+    this.savedWorldPos = { x: this.player.x, y: this.player.y };
+    this.currentScene = 'interior';
+    this.player.x = 380;
+    this.player.y = 430;
+    this.player.facing = 1;
+
+    if (this.petSystem.activePet) {
+      this.petSystem.activePet.x = 415;
+      this.petSystem.activePet.y = 430;
+    }
+
+    this.soundManager.playDoor();
+    this.uiManager.showToast('🏡 Evine hoş geldin! Dinlenebilir, sandığa eşya koyabilir ve mobilyalarını düzenleyebilirsin.');
+  }
+
+  exitHouse() {
+    this.currentScene = 'world';
+    this.player.x = this.world.housePlot.x + this.world.housePlot.width / 2;
+    this.player.y = this.world.housePlot.y + this.world.housePlot.height + 20;
+
+    if (this.petSystem.activePet) {
+      this.petSystem.activePet.x = this.player.x - 25;
+      this.petSystem.activePet.y = this.player.y;
+    }
+
+    this.soundManager.playDoor();
+    this.uiManager.showToast('🌲 Köye geri döndün!');
+  }
+
   triggerInteract(speakAloud = false) {
+    // If inside house, interact with nearest furniture or door
+    if (this.currentScene === 'interior') {
+      this.houseInterior.interact(this.player);
+      return;
+    }
+
     // If dialog modal is already open and L is pressed, toggle TTS
     if (this.uiManager.activeModal === 'modal-dialog' && speakAloud) {
       document.getElementById('dialog-tts-btn')?.click();
@@ -200,11 +261,26 @@ class Game {
 
     // Check House Plot (only on E key, not L)
     if (!speakAloud && this.world.housePlot && this.world.housePlot.isNear(this.player)) {
-      this.uiManager.openHouseModal();
+      if (this.world.housePlot.tier >= 1) {
+        this.enterHouse();
+      } else {
+        this.uiManager.openHouseModal();
+      }
     }
   }
 
   triggerMine() {
+    if (this.currentScene === 'interior') {
+      // Inside house, check for interactive furniture instead of mining
+      const target = this.houseInterior.getNearestInteractive(this.player);
+      if (target) {
+        this.houseInterior.interact(this.player);
+      } else {
+        this.soundManager.playTone(200, 0.08, 'sine', 0.06, -50);
+      }
+      return;
+    }
+
     if (!this.player.startSwing()) return;
 
     // Find target in front of player
@@ -230,6 +306,16 @@ class Game {
   }
 
   triggerMineAt(worldX, worldY) {
+    if (this.currentScene === 'interior') {
+      const target = this.houseInterior.getNearestInteractive(this.player);
+      if (target) {
+        this.houseInterior.interact(this.player);
+      } else {
+        this.input.targetPos = { x: worldX, y: worldY };
+      }
+      return;
+    }
+
     // Check if clicked directly on an NPC
     for (const npc of this.world.npcs) {
       const distToNpc = Math.hypot(worldX - npc.x, worldY - npc.y);
@@ -294,14 +380,70 @@ class Game {
   }
 
   update(dt) {
-    // Continuous mining when Space or Mouse is held
-    if (this.input.keys['Space'] || (this.input.mouse.isDown && !this.input.targetPos)) {
-      if (this.player.swingCooldown <= 0) {
-        this.triggerMine();
+    // Continuous mining when Space or Mouse is held (in world scene)
+    if (this.currentScene === 'world') {
+      if (this.input.keys['Space'] || (this.input.mouse.isDown && !this.input.targetPos)) {
+        if (this.player.swingCooldown <= 0) {
+          this.triggerMine();
+        }
       }
     }
 
-    // 1. Update Player
+    if (this.currentScene === 'interior') {
+      // 1. Update House Interior
+      this.houseInterior.update(dt);
+
+      // 2. Update Player inside interior bounds
+      this.player.update(dt, this.input, this.houseInterior, this.particles, this.soundManager);
+
+      // 3. Update Pet companion following player inside
+      this.petSystem.update(dt);
+
+      // 4. Update Time & Auto-Save
+      this.timeSystem.update(dt);
+      this.saveManager.update(dt);
+
+      // 5. Update Particles & Floating texts
+      for (let i = this.particles.length - 1; i >= 0; i--) {
+        if (!this.particles[i].update(dt)) {
+          this.particles.splice(i, 1);
+        }
+      }
+      for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
+        if (!this.floatingTexts[i].update(dt)) {
+          this.floatingTexts.splice(i, 1);
+        }
+      }
+
+      // 6. Camera follows or centers inside room
+      if (this.camera.width >= this.houseInterior.width) {
+        this.camera.x = (this.houseInterior.width - this.camera.width) / 2;
+      } else {
+        const targetCamX = this.player.x - this.camera.width / 2;
+        this.camera.x += (targetCamX - this.camera.x) * (dt * 8);
+        this.camera.x = Math.max(0, Math.min(this.houseInterior.width - this.camera.width, this.camera.x));
+      }
+
+      if (this.camera.height >= this.houseInterior.height) {
+        this.camera.y = (this.houseInterior.height - this.camera.height) / 2;
+      } else {
+        const targetCamY = this.player.y - this.camera.height / 2;
+        this.camera.y += (targetCamY - this.camera.y) * (dt * 8);
+        this.camera.y = Math.max(0, Math.min(this.houseInterior.height - this.camera.height, this.camera.y));
+      }
+
+      // 7. Radar Pointer text for house interior
+      const radarEl = document.getElementById('village-pointer');
+      if (radarEl) {
+        radarEl.innerHTML = '🚪 Çıkış: Kapı / [E]';
+        radarEl.style.borderColor = '#38bdf8';
+      }
+
+      return;
+    }
+
+    // --- WORLD SCENE UPDATE ---
+    // 1. Update Player in outdoor world
     this.player.update(dt, this.input, this.world, this.particles, this.soundManager);
 
     // 2. Update World (resources, npcs, house plot)
@@ -424,6 +566,36 @@ class Game {
     this.ctx.save();
     this.ctx.translate(-Math.round(this.camera.x), -Math.round(this.camera.y));
 
+    if (this.currentScene === 'interior') {
+      // 1. Draw House Interior Room & Furniture
+      this.houseInterior.draw(this.ctx, this.camera);
+
+      // 2. Draw Living Entities (Player & Pet)
+      const entities = [this.player];
+      if (this.petSystem.activePet) {
+        entities.push(this.petSystem.activePet);
+      }
+      entities.sort((a, b) => a.y - b.y);
+
+      entities.forEach((ent) => {
+        if (ent === this.player) {
+          this.player.draw(this.ctx);
+        } else if (ent === this.petSystem.activePet) {
+          this.petSystem.draw(this.ctx);
+        }
+      });
+
+      // 3. Draw Particles
+      this.particles.forEach((p) => p.draw(this.ctx));
+
+      // 4. Draw Floating Texts
+      this.floatingTexts.forEach((ft) => ft.draw(this.ctx));
+
+      this.ctx.restore();
+      return;
+    }
+
+    // --- WORLD SCENE RENDER ---
     // 1. Draw World terrain & paths
     this.world.draw(this.ctx, this.camera);
 
@@ -441,20 +613,16 @@ class Game {
     }
 
     // 3. Draw Dropped Items
-    this.droppedItems.forEach(item => item.draw(this.ctx));
+    this.droppedItems.forEach((item) => item.draw(this.ctx));
 
     // 4. Draw Living Entities (Y-sorted for proper 2D perspective overlap!)
-    const entities = [
-      this.player,
-      ...this.world.npcs,
-      ...this.world.resources,
-    ];
+    const entities = [this.player, ...this.world.npcs, ...this.world.resources];
     if (this.petSystem.activePet) {
       entities.push(this.petSystem.activePet);
     }
     entities.sort((a, b) => a.y - b.y);
 
-    entities.forEach(ent => {
+    entities.forEach((ent) => {
       if (ent === this.player) {
         this.player.draw(this.ctx);
       } else if (ent === this.petSystem.activePet) {
@@ -467,13 +635,13 @@ class Game {
     });
 
     // 5. Draw Particles
-    this.particles.forEach(p => p.draw(this.ctx));
+    this.particles.forEach((p) => p.draw(this.ctx));
 
     // 6. Draw Day/Night Ambient Darkness and Lights
     this.timeSystem.drawLighting(this.ctx, this.camera);
 
     // 7. Draw Floating Texts on top of lighting
-    this.floatingTexts.forEach(ft => ft.draw(this.ctx));
+    this.floatingTexts.forEach((ft) => ft.draw(this.ctx));
 
     this.ctx.restore();
   }
