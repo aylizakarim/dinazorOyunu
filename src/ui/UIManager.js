@@ -1,6 +1,7 @@
 import confetti from 'canvas-confetti';
 import { HousePlot } from '../entities/HousePlot.js';
 import { FURNITURE_RECIPES } from '../entities/HouseInterior.js';
+import { EXHIBIT_DEFINITIONS } from '../systems/MuseumSystem.js';
 import { ttsManager } from '../audio/ttsManager.js';
 
 export class UIManager {
@@ -8,6 +9,7 @@ export class UIManager {
     this.game = game;
     this.activeModal = null;
     this.currentShopTab = 'skins';
+    this.currentMuseumTab = 'rex';
   }
 
   init() {
@@ -22,6 +24,7 @@ export class UIManager {
     document.getElementById('btn-quests')?.addEventListener('click', () => this.openQuestsModal());
     document.getElementById('btn-house')?.addEventListener('click', () => this.openHouseModal());
     document.getElementById('btn-pet')?.addEventListener('click', () => this.openPetModal());
+    document.getElementById('btn-museum')?.addEventListener('click', () => this.openMuseumModal());
     document.getElementById('btn-backup')?.addEventListener('click', () => this.openBackupModal());
     document.getElementById('btn-sound')?.addEventListener('click', () => this.toggleSound());
     document.getElementById('btn-help')?.addEventListener('click', () => this.openHelpModal());
@@ -170,6 +173,25 @@ export class UIManager {
         if (buffTimerEl) buffTimerEl.textContent = Math.ceil(this.game.player.restedBuffTimer);
       } else {
         buffEl.style.display = 'none';
+      }
+    }
+
+    // Check ready fossil donations for museum badge
+    if (this.game.museumSystem) {
+      const museumBadge = document.getElementById('badge-museum');
+      if (museumBadge) {
+        let readyDonations = 0;
+        for (const [boneId, count] of Object.entries(this.game.museumSystem.playerBones)) {
+          if (count > 0 && !this.game.museumSystem.isDonated(boneId)) {
+            readyDonations += count;
+          }
+        }
+        if (readyDonations > 0) {
+          museumBadge.style.display = 'block';
+          museumBadge.textContent = readyDonations;
+        } else {
+          museumBadge.style.display = 'none';
+        }
       }
     }
   }
@@ -617,6 +639,185 @@ export class UIManager {
     });
   }
 
+  // --- ARCHEOLOGY MUSEUM MODAL ---
+  openMuseumModal(defaultTab = null) {
+    if (defaultTab) {
+      this.currentMuseumTab = defaultTab;
+    }
+    this.renderMuseum();
+    this.openModal('modal-museum');
+  }
+
+  renderMuseum() {
+    const museum = this.game.museumSystem;
+    if (!museum) return;
+
+    // 1. Stats Bar
+    const progressEl = document.getElementById('museum-stat-progress');
+    const touristsEl = document.getElementById('museum-stat-tourists');
+    const goldEl = document.getElementById('museum-stat-gold');
+
+    const pct = museum.getCompletionPercentage();
+    const donated = museum.getDonatedCount();
+    const total = museum.getTotalBonesCount();
+    const touristCount = Math.max(1, Math.round(pct / 25) + 1);
+
+    if (progressEl) progressEl.textContent = `%${pct} (${donated}/${total} Kemik)`;
+    if (touristsEl) touristsEl.textContent = `${touristCount} Turist 📸`;
+    if (goldEl) goldEl.textContent = `🪙 ${Math.floor(museum.accruedGold)}`;
+
+    // Collect button
+    const collectBtn = document.getElementById('btn-collect-museum-gold');
+    if (collectBtn) {
+      collectBtn.onclick = () => {
+        const collected = museum.collectTicketGold(this.game.economy, this.game.soundManager);
+        if (collected > 0) {
+          this.showToast(`🪙 Müze bilet ve bağış kutusundan +${collected} Altın topladın!`);
+          this.updateHUD();
+          this.renderMuseum();
+          this.game.saveManager.save();
+        } else {
+          this.showToast('ℹ️ Biriken yeni bağış altını yok!');
+        }
+      };
+    }
+
+    // Clean Raw Fossils Button (5 raw fossils -> 1 missing bone)
+    const cleanBtn = document.getElementById('btn-clean-fossils');
+    if (cleanBtn) {
+      cleanBtn.disabled = this.game.economy.fossils < 5;
+      cleanBtn.onclick = () => {
+        const bone = museum.cleanRawFossils(this.game.economy, this.game.soundManager);
+        if (bone) {
+          confetti({
+            particleCount: 50,
+            spread: 50,
+            origin: { y: 0.6 },
+          });
+          this.showToast(`✨ Profesör Pachy fosili temizledi: "${bone.name}" bulundu!`);
+          this.updateHUD();
+          this.renderMuseum();
+          this.game.saveManager.save();
+        } else {
+          this.showToast('❌ En az 5 ham fosil gerekiyor!');
+        }
+      };
+    }
+
+    // Enter Museum Interior Button
+    const enterMuseumBtn = document.getElementById('btn-enter-museum-modal');
+    if (enterMuseumBtn) {
+      enterMuseumBtn.onclick = () => {
+        this.closeAllModals();
+        this.game.enterMuseum();
+      };
+    }
+
+    // 2. Tabs
+    const tabsContainer = document.getElementById('museum-tabs');
+    if (tabsContainer) {
+      tabsContainer.innerHTML = '';
+      EXHIBIT_DEFINITIONS.forEach((ex) => {
+        const prog = museum.getSpeciesProgress(ex.id);
+        const isComplete = museum.isSpeciesComplete(ex.id);
+        const btn = document.createElement('button');
+        btn.className = `tab-btn ${this.currentMuseumTab === ex.id ? 'active' : ''}`;
+        btn.innerHTML = `${ex.icon} ${ex.shortName} <span style="font-size:11px;opacity:0.85">(${prog.donated}/${prog.total})</span> ${isComplete ? '👑' : ''}`;
+        btn.addEventListener('click', () => {
+          this.currentMuseumTab = ex.id;
+          this.renderMuseum();
+        });
+        tabsContainer.appendChild(btn);
+      });
+    }
+
+    // 3. Content for active dinosaur exhibit
+    const contentContainer = document.getElementById('museum-content-container');
+    if (!contentContainer) return;
+
+    contentContainer.innerHTML = '';
+
+    const currentExhibit = EXHIBIT_DEFINITIONS.find((e) => e.id === this.currentMuseumTab) || EXHIBIT_DEFINITIONS[0];
+    const isSpeciesDone = museum.isSpeciesComplete(currentExhibit.id);
+
+    // Header info banner
+    const banner = document.createElement('div');
+    banner.style.padding = '12px 16px';
+    banner.style.background = 'rgba(30, 41, 59, 0.7)';
+    banner.style.borderRadius = '12px';
+    banner.style.border = `1.5px solid ${currentExhibit.color}`;
+    banner.style.marginBottom = '12px';
+    banner.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h3 style="font-size:17px;color:${currentExhibit.color}">${currentExhibit.icon} ${currentExhibit.name}</h3>
+        <span style="font-size:12px;font-weight:700;color:${isSpeciesDone ? '#22c55e' : '#facc15'}">
+          ${isSpeciesDone ? '👑 %100 TAMAMLANDI' : '⏳ Devam Ediyor'}
+        </span>
+      </div>
+      <p style="font-size:13px;color:#94a3b8;margin-top:4px">${currentExhibit.desc}</p>
+    `;
+    contentContainer.appendChild(banner);
+
+    // List of required bones
+    const bonesList = document.createElement('div');
+    bonesList.style.display = 'flex';
+    bonesList.style.flexDirection = 'column';
+    bonesList.style.gap = '8px';
+
+    currentExhibit.bones.forEach((b) => {
+      const isDonated = museum.isDonated(b.id);
+      const heldCount = museum.playerBones[b.id] || 0;
+
+      const card = document.createElement('div');
+      card.style.display = 'flex';
+      card.style.alignItems = 'center';
+      card.style.justifyContent = 'space-between';
+      card.style.padding = '10px 14px';
+      card.style.background = isDonated ? 'rgba(34, 197, 94, 0.08)' : (heldCount > 0 ? 'rgba(234, 179, 8, 0.1)' : 'rgba(30, 41, 59, 0.5)');
+      card.style.borderRadius = '10px';
+      card.style.border = `1px solid ${isDonated ? 'rgba(34, 197, 94, 0.4)' : (heldCount > 0 ? '#eab308' : 'rgba(255, 255, 255, 0.08)')}`;
+
+      let actionHtml = '';
+      if (isDonated) {
+        actionHtml = '<span style="color:#22c55e;font-size:12px;font-weight:700">SERGİDE MONTE EDİLDİ ✅</span>';
+      } else if (heldCount > 0) {
+        actionHtml = `<button class="btn-action btn-donate-single" data-id="${b.id}" style="background:#059669;padding:6px 12px;font-size:12px">Bağış Yap (+150 🪙)</button>`;
+      } else {
+        actionHtml = '<span style="color:#94a3b8;font-size:12px">Henüz Bulunmadı 🔍</span>';
+      }
+
+      card.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:24px">${isDonated ? '🦴' : (heldCount > 0 ? '✨' : '❔')}</span>
+          <div>
+            <div style="font-weight:700;color:${isDonated ? '#4ade80' : '#f8fafc'};font-size:14px">${b.name}</div>
+            <div style="font-size:12px;color:#94a3b8">${b.desc}</div>
+          </div>
+        </div>
+        <div>
+          ${actionHtml}
+        </div>
+      `;
+
+      card.querySelector('.btn-donate-single')?.addEventListener('click', () => {
+        if (museum.donate(b.id, this.game.economy, this.game.soundManager)) {
+          confetti({
+            particleCount: 70,
+            spread: 70,
+            origin: { y: 0.6 },
+          });
+          this.updateHUD();
+          this.renderMuseum();
+          this.game.saveManager.save();
+        }
+      });
+
+      bonesList.appendChild(card);
+    });
+
+    contentContainer.appendChild(bonesList);
+  }
+
   // --- BACKUP SAVE MODAL ---
   openBackupModal() {
     this.openModal('modal-backup');
@@ -724,6 +925,7 @@ export class UIManager {
       if (npc.dinoType === 'chief') avatarEl.textContent = '🦖';
       else if (npc.dinoType === 'carpenter') avatarEl.textContent = '🔨';
       else if (npc.dinoType === 'tailor') avatarEl.textContent = '🪡';
+      else if (npc.dinoType === 'curator') avatarEl.textContent = '🦕';
       else avatarEl.textContent = '⛏️';
     }
 
@@ -766,6 +968,7 @@ export class UIManager {
         else if (dialog.actionType === 'upgrades') this.openUpgradesModal();
         else if (dialog.actionType === 'house') this.openHouseModal();
         else if (dialog.actionType === 'quests') this.openQuestsModal();
+        else if (dialog.actionType === 'museum') this.openMuseumModal();
       };
     }
 

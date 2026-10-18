@@ -10,6 +10,8 @@ import { TimeSystem } from './systems/TimeSystem.js';
 import { PetSystem } from './systems/PetSystem.js';
 import { StorageSystem } from './systems/StorageSystem.js';
 import { HouseInterior } from './entities/HouseInterior.js';
+import { MuseumSystem } from './systems/MuseumSystem.js';
+import { MuseumInterior } from './entities/MuseumInterior.js';
 import { UIManager } from './ui/UIManager.js';
 
 class Game {
@@ -18,7 +20,7 @@ class Game {
     this.ctx = this.canvas.getContext('2d');
     this.isPaused = false;
 
-    // Current Scene: 'world' or 'interior'
+    // Current Scene: 'world', 'interior', or 'museum'
     this.currentScene = 'world';
     this.savedWorldPos = { x: 1100, y: 880 };
 
@@ -34,6 +36,8 @@ class Game {
     this.petSystem = new PetSystem(this);
     this.storageSystem = new StorageSystem();
     this.houseInterior = new HouseInterior(this);
+    this.museumSystem = new MuseumSystem(this);
+    this.museumInterior = new MuseumInterior(this);
 
     this.saveManager = new SaveManager(
       this.player,
@@ -45,7 +49,8 @@ class Game {
       this.timeSystem,
       this.petSystem,
       this.storageSystem,
-      this.houseInterior
+      this.houseInterior,
+      this.museumSystem
     );
     this.uiManager = new UIManager(this);
 
@@ -238,10 +243,46 @@ class Game {
     this.uiManager.showToast('🌲 Köye geri döndün!');
   }
 
+  enterMuseum() {
+    this.savedWorldPos = { x: this.player.x, y: this.player.y };
+    this.currentScene = 'museum';
+    this.player.x = 400;
+    this.player.y = 450;
+    this.player.facing = 1;
+
+    if (this.petSystem.activePet) {
+      this.petSystem.activePet.x = 430;
+      this.petSystem.activePet.y = 450;
+    }
+
+    this.soundManager.playDoor();
+    this.uiManager.showToast('🏛️ Arkeoloji Müzesine Hoş Geldin! Sergileri gezebilir ve fosil bağışlayabilirsin.');
+  }
+
+  exitMuseum() {
+    this.currentScene = 'world';
+    this.player.x = 1320;
+    this.player.y = 680;
+
+    if (this.petSystem.activePet) {
+      this.petSystem.activePet.x = 1295;
+      this.petSystem.activePet.y = 680;
+    }
+
+    this.soundManager.playDoor();
+    this.uiManager.showToast('🌲 Köy meydanına geri döndün!');
+  }
+
   triggerInteract(speakAloud = false) {
     // If inside house, interact with nearest furniture or door
     if (this.currentScene === 'interior') {
       this.houseInterior.interact(this.player);
+      return;
+    }
+
+    // If inside museum, interact with pedestals, curator or ticket box
+    if (this.currentScene === 'museum') {
+      this.museumInterior.interact(this.player, speakAloud);
       return;
     }
 
@@ -259,6 +300,12 @@ class Game {
       }
     }
 
+    // Check Museum Entrance in Village
+    if (!speakAloud && this.world.isNearMuseum(this.player)) {
+      this.enterMuseum();
+      return;
+    }
+
     // Check House Plot (only on E key, not L)
     if (!speakAloud && this.world.housePlot && this.world.housePlot.isNear(this.player)) {
       if (this.world.housePlot.tier >= 1) {
@@ -271,10 +318,19 @@ class Game {
 
   triggerMine() {
     if (this.currentScene === 'interior') {
-      // Inside house, check for interactive furniture instead of mining
       const target = this.houseInterior.getNearestInteractive(this.player);
       if (target) {
         this.houseInterior.interact(this.player);
+      } else {
+        this.soundManager.playTone(200, 0.08, 'sine', 0.06, -50);
+      }
+      return;
+    }
+
+    if (this.currentScene === 'museum') {
+      const target = this.museumInterior.getNearestInteractive(this.player);
+      if (target) {
+        this.museumInterior.interact(this.player);
       } else {
         this.soundManager.playTone(200, 0.08, 'sine', 0.06, -50);
       }
@@ -310,6 +366,16 @@ class Game {
       const target = this.houseInterior.getNearestInteractive(this.player);
       if (target) {
         this.houseInterior.interact(this.player);
+      } else {
+        this.input.targetPos = { x: worldX, y: worldY };
+      }
+      return;
+    }
+
+    if (this.currentScene === 'museum') {
+      const target = this.museumInterior.getNearestInteractive(this.player);
+      if (target) {
+        this.museumInterior.interact(this.player);
       } else {
         this.input.targetPos = { x: worldX, y: worldY };
       }
@@ -380,6 +446,9 @@ class Game {
   }
 
   update(dt) {
+    // Always update Museum System tourist income
+    this.museumSystem.update(dt, this.economy);
+
     // Continuous mining when Space or Mouse is held (in world scene)
     if (this.currentScene === 'world') {
       if (this.input.keys['Space'] || (this.input.mouse.isDown && !this.input.targetPos)) {
@@ -442,6 +511,59 @@ class Game {
       return;
     }
 
+    if (this.currentScene === 'museum') {
+      // 1. Update Museum Interior
+      this.museumInterior.update(dt);
+
+      // 2. Update Player inside museum bounds
+      this.player.update(dt, this.input, this.museumInterior, this.particles, this.soundManager);
+
+      // 3. Update Pet companion following player inside
+      this.petSystem.update(dt);
+
+      // 4. Update Time & Auto-Save
+      this.timeSystem.update(dt);
+      this.saveManager.update(dt);
+
+      // 5. Update Particles & Floating texts
+      for (let i = this.particles.length - 1; i >= 0; i--) {
+        if (!this.particles[i].update(dt)) {
+          this.particles.splice(i, 1);
+        }
+      }
+      for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
+        if (!this.floatingTexts[i].update(dt)) {
+          this.floatingTexts.splice(i, 1);
+        }
+      }
+
+      // 6. Camera follows or centers inside museum hall
+      if (this.camera.width >= this.museumInterior.width) {
+        this.camera.x = (this.museumInterior.width - this.camera.width) / 2;
+      } else {
+        const targetCamX = this.player.x - this.camera.width / 2;
+        this.camera.x += (targetCamX - this.camera.x) * (dt * 8);
+        this.camera.x = Math.max(0, Math.min(this.museumInterior.width - this.camera.width, this.camera.x));
+      }
+
+      if (this.camera.height >= this.museumInterior.height) {
+        this.camera.y = (this.museumInterior.height - this.camera.height) / 2;
+      } else {
+        const targetCamY = this.player.y - this.camera.height / 2;
+        this.camera.y += (targetCamY - this.camera.y) * (dt * 8);
+        this.camera.y = Math.max(0, Math.min(this.museumInterior.height - this.camera.height, this.camera.y));
+      }
+
+      // 7. Radar Pointer text for museum
+      const radarEl = document.getElementById('village-pointer');
+      if (radarEl) {
+        radarEl.innerHTML = '🚪 Çıkış: Kapı / [E]';
+        radarEl.style.borderColor = '#38bdf8';
+      }
+
+      return;
+    }
+
     // --- WORLD SCENE UPDATE ---
     // 1. Update Player in outdoor world
     this.player.update(dt, this.input, this.world, this.particles, this.soundManager);
@@ -459,6 +581,10 @@ class Game {
           this.petSystem.findEgg(randomType);
           this.soundManager.playUpgrade();
           this.saveManager.save();
+        } else if (collected.type === 'rare_bone') {
+          const randomBone = this.museumSystem.getRandomMissingBone();
+          this.museumSystem.addBone(randomBone.id, this.soundManager, this.floatingTexts);
+          this.saveManager.save();
         } else {
           this.economy.add(collected.type, collected.amount);
           this.soundManager.playItemPickup(collected.type);
@@ -471,6 +597,7 @@ class Game {
           gem: `+${collected.amount} Mücevher 💎`,
           fossil: `+${collected.amount} Fosil 🦴`,
           egg: `+1 Dinozor Yumurtası! 🥚`,
+          rare_bone: `+1 Nadir Fosil Kemiği! 🦴`,
         };
         const colors = {
           coin: '#facc15',
@@ -479,6 +606,7 @@ class Game {
           gem: '#f43f5e',
           fossil: '#e2e8f0',
           egg: '#ec4899',
+          rare_bone: '#facc15',
         };
 
         this.floatingTexts.push({
@@ -569,6 +697,35 @@ class Game {
     if (this.currentScene === 'interior') {
       // 1. Draw House Interior Room & Furniture
       this.houseInterior.draw(this.ctx, this.camera);
+
+      // 2. Draw Living Entities (Player & Pet)
+      const entities = [this.player];
+      if (this.petSystem.activePet) {
+        entities.push(this.petSystem.activePet);
+      }
+      entities.sort((a, b) => a.y - b.y);
+
+      entities.forEach((ent) => {
+        if (ent === this.player) {
+          this.player.draw(this.ctx);
+        } else if (ent === this.petSystem.activePet) {
+          this.petSystem.draw(this.ctx);
+        }
+      });
+
+      // 3. Draw Particles
+      this.particles.forEach((p) => p.draw(this.ctx));
+
+      // 4. Draw Floating Texts
+      this.floatingTexts.forEach((ft) => ft.draw(this.ctx));
+
+      this.ctx.restore();
+      return;
+    }
+
+    if (this.currentScene === 'museum') {
+      // 1. Draw Museum Exhibition Hall & Skeletons
+      this.museumInterior.draw(this.ctx, this.camera);
 
       // 2. Draw Living Entities (Player & Pet)
       const entities = [this.player];

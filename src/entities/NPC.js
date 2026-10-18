@@ -61,6 +61,14 @@ export class NPC {
           actionBtn: 'Geliştirmeleri Aç',
           actionType: 'upgrades',
         };
+      case 'curator':
+        return {
+          title: `${this.name} (${this.title})`,
+          greeting: 'Harika bir keşif günü değil mi genç araştırmacı! Ben Profesör Pachy, vadinin baş paleontolog ve arkeoloji müzesi müdürüyüm.',
+          advice: 'Kazılarda bulduğun antik dinozor kemiklerini müzemize bağışlayarak dev iskeletleri tamamlayabilirsin! Müze doldukça vadimize turist dinozorlar akın eder ve bağış sandığına altın bırakırlar!',
+          actionBtn: 'Müzeyi Aç 🏛️',
+          actionType: 'museum',
+        };
       default:
         return {
           title: this.name,
@@ -98,6 +106,8 @@ export class NPC {
       this.drawTailor(ctx);
     } else if (this.dinoType === 'miner') {
       this.drawMiner(ctx);
+    } else if (this.dinoType === 'curator') {
+      this.drawCurator(ctx);
     }
 
     ctx.restore();
@@ -327,6 +337,75 @@ export class NPC {
     ctx.fillStyle = '#0f172a';
     ctx.beginPath();
     ctx.arc(11, -21, 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  drawCurator(ctx) {
+    // Profesör Pachy (Paleontologist Pachycephalosaurus)
+    // Legs
+    ctx.fillStyle = '#0369a1';
+    ctx.fillRect(-10, 6, 8, 12);
+    ctx.fillRect(4, 6, 8, 12);
+
+    // Thick Sturdy Body
+    ctx.fillStyle = '#0284c7';
+    ctx.beginPath();
+    ctx.ellipse(0, -6, 18, 16, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Pale Cream Belly
+    ctx.fillStyle = '#bae6fd';
+    ctx.beginPath();
+    ctx.ellipse(4, -2, 10, 11, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Tail
+    ctx.fillStyle = '#0284c7';
+    ctx.beginPath();
+    ctx.moveTo(-14, 0);
+    ctx.lineTo(-26, 4);
+    ctx.lineTo(-14, 10);
+    ctx.closePath();
+    ctx.fill();
+
+    // Head
+    ctx.fillStyle = '#0284c7';
+    ctx.beginPath();
+    ctx.arc(10, -22, 11, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Archeologist Pith Helmet Hat
+    ctx.fillStyle = '#d97706';
+    ctx.beginPath();
+    ctx.arc(10, -25, 12, Math.PI, 0);
+    ctx.fill();
+    ctx.fillRect(-2, -25, 24, 3.5);
+
+    // Round Spectacles / Glasses
+    ctx.strokeStyle = '#facc15';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(14, -21, 4.5, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Eye inside glass
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.arc(14, -21, 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Magnifying Glass in hand
+    ctx.strokeStyle = '#92400e';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(8, -2);
+    ctx.lineTo(18, 2);
+    ctx.stroke();
+    ctx.strokeStyle = '#facc15';
+    ctx.beginPath();
+    ctx.arc(22, 4, 5, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(186, 230, 253, 0.6)';
     ctx.fill();
   }
 }

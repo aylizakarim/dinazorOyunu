@@ -213,6 +213,29 @@ export class DroppedItem {
       ctx.arc(3, 2, 2.5, 0, Math.PI * 2);
       ctx.arc(-1, 5, 1.8, 0, Math.PI * 2);
       ctx.fill();
+    } else if (this.type === 'rare_bone') {
+      // Ancient Rare Fossil Bone with golden glow
+      ctx.fillStyle = 'rgba(250, 204, 21, 0.4)';
+      ctx.beginPath();
+      ctx.arc(0, 0, 14, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#fef08a';
+      ctx.strokeStyle = '#eab308';
+      ctx.lineWidth = 2;
+
+      ctx.beginPath();
+      ctx.roundRect(-8, -4, 16, 8, 3);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(-8, -4, 3.5, 0, Math.PI * 2);
+      ctx.arc(-8, 4, 3.5, 0, Math.PI * 2);
+      ctx.arc(8, -4, 3.5, 0, Math.PI * 2);
+      ctx.arc(8, 4, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
     }
 
     ctx.restore();

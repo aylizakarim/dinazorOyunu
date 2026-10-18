@@ -11,7 +11,8 @@ export class SaveManager {
     timeSystem,
     petSystem,
     storageSystem = null,
-    houseInterior = null
+    houseInterior = null,
+    museumSystem = null
   ) {
     this.player = player;
     this.economy = economy;
@@ -23,6 +24,7 @@ export class SaveManager {
     this.petSystem = petSystem;
     this.storageSystem = storageSystem;
     this.houseInterior = houseInterior;
+    this.museumSystem = museumSystem;
 
     this.saveKey = 'dino_adventure_game_save_v1';
     this.autoSaveTimer = 0;
@@ -61,6 +63,7 @@ export class SaveManager {
       },
       storage: this.storageSystem ? this.storageSystem.serialize() : null,
       interior: this.houseInterior ? this.houseInterior.serialize() : null,
+      museum: this.museumSystem ? this.museumSystem.serialize() : null,
       quests: {
         completedQuestIds: this.quests.completedQuestIds,
         stats: this.quests.stats,
@@ -140,6 +143,10 @@ export class SaveManager {
 
     if (data.interior && this.houseInterior) {
       this.houseInterior.deserialize(data.interior);
+    }
+
+    if (data.museum && this.museumSystem) {
+      this.museumSystem.deserialize(data.museum);
     }
 
     if (data.quests) {

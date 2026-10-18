@@ -271,12 +271,16 @@ export class ResourceObject {
         drops.push({ type: 'gem', count: Math.round((6 + Math.floor(Math.random() * 6)) * luckBonus) });
         drops.push({ type: 'fossil', count: 2 });
         if (Math.random() < 0.45) drops.push({ type: 'egg', count: 1 });
+        // 50% chance to drop a rare prehistoric museum fossil bone
+        if (Math.random() < 0.5 + player.luck * 0.05) drops.push({ type: 'rare_bone', count: 1 });
         break;
       case 'dig_spot':
         drops.push({ type: 'coin', count: Math.round((15 + Math.floor(Math.random() * 15)) * luckBonus) });
         drops.push({ type: 'fossil', count: 1 });
         if (Math.random() < 0.4) drops.push({ type: 'gem', count: 1 });
         if (Math.random() < 0.25) drops.push({ type: 'egg', count: 1 });
+        // 40% chance to drop a rare prehistoric museum fossil bone
+        if (Math.random() < 0.4 + player.luck * 0.05) drops.push({ type: 'rare_bone', count: 1 });
         break;
     }
 

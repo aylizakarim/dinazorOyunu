@@ -25,10 +25,14 @@ export class World {
       new NPC(880, 850, 'carpenter', 'Tricera Usta', 'Baş Marangoz', 'carpenter'),
       new NPC(1320, 850, 'tailor', 'Ptero Terzi', 'Moda Tasarımcısı', 'tailor'),
       new NPC(1260, 1100, 'miner', 'Stego Madenci', 'Jeolog', 'miner'),
+      new NPC(1240, 690, 'curator', 'Profesör Pachy', 'Baş Arkeolog & Paleontolog', 'curator'),
     ];
 
     // 2. Create Player's House Plot in the Village
     this.housePlot = new HousePlot(960, 920);
+
+    // 3. Museum Plot in North-East Village Plaza
+    this.museumPlot = { x: 1250, y: 560, width: 140, height: 100 };
 
     // 3. Generate Resources across biomes
     this.generateResources();
@@ -118,7 +122,18 @@ export class World {
     const fDist = Math.hypot(x - 1100, y - 800);
     if (fDist < radius + 28) return false;
 
+    // Museum building collision (at 1250, 560, width 140, height 90)
+    if (x > 1245 && x < 1395 && y > 555 && y < 645) {
+      return false;
+    }
+
     return true;
+  }
+
+  isNearMuseum(player) {
+    if (!this.museumPlot) return false;
+    const dist = Math.hypot(player.x - (this.museumPlot.x + 70), player.y - (this.museumPlot.y + 90));
+    return dist < 65;
   }
 
   getMiningTarget(player) {
@@ -172,6 +187,9 @@ export class World {
     if (this.housePlot) {
       this.housePlot.draw(ctx, camera.target);
     }
+
+    // 5. Draw Museum Building
+    this.drawMuseum(ctx, camera.target);
   }
 
   drawTerrain(ctx) {
@@ -337,5 +355,114 @@ export class World {
 
       ctx.restore();
     });
+  }
+
+  drawMuseum(ctx, player) {
+    const { x, y, width, height } = this.museumPlot;
+    const cx = x + width / 2;
+
+    ctx.save();
+
+    // Shadow & Grass Foundation
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+    ctx.beginPath();
+    ctx.ellipse(cx, y + height - 8, width * 0.55, 14, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Classical Marble Building Walls
+    ctx.fillStyle = '#f8fafc';
+    ctx.beginPath();
+    ctx.roundRect(x, y + 24, width, height - 24, 6);
+    ctx.fill();
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // 4 Classical Pillars
+    const colSpacing = width / 5;
+    for (let i = 1; i <= 4; i++) {
+      const colX = x + i * colSpacing;
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fillRect(colX - 6, y + 28, 12, height - 42);
+      ctx.fillStyle = '#cbd5e1';
+      ctx.fillRect(colX - 8, y + 25, 16, 5);
+      ctx.fillRect(colX - 8, y + height - 16, 16, 5);
+    }
+
+    // Triangular Pediment / Roof
+    ctx.fillStyle = '#334155';
+    ctx.beginPath();
+    ctx.moveTo(x - 8, y + 26);
+    ctx.lineTo(cx, y - 10);
+    ctx.lineTo(x + width + 8, y + 26);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#eab308';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // Golden Dino Bone Emblem inside pediment
+    ctx.fillStyle = '#facc15';
+    ctx.beginPath();
+    ctx.arc(cx, y + 10, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('🦴', cx, y + 14);
+
+    // Grand Arched Double Doors
+    ctx.fillStyle = '#78350f';
+    ctx.beginPath();
+    ctx.arc(cx, y + 54, 16, Math.PI, 0);
+    ctx.rect(cx - 16, y + 54, 32, 38);
+    ctx.fill();
+    ctx.strokeStyle = '#facc15';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Red Carpet Steps
+    ctx.fillStyle = '#dc2626';
+    ctx.fillRect(cx - 14, y + 84, 28, 16);
+    ctx.strokeStyle = '#facc15';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(cx - 14, y + 84, 28, 16);
+
+    // Signboard
+    ctx.fillStyle = '#1e293b';
+    ctx.beginPath();
+    ctx.roundRect(cx - 48, y + 28, 96, 18, 4);
+    ctx.fill();
+    ctx.strokeStyle = '#facc15';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.fillStyle = '#fef08a';
+    ctx.font = 'bold 9px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('🏛️ ARKEOLOJİ MÜZESİ', cx, y + 40);
+
+    ctx.restore();
+
+    // Prompt if player is near museum entrance
+    if (this.isNearMuseum(player)) {
+      ctx.save();
+      const promptX = cx;
+      const promptY = y - 22;
+
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+      ctx.beginPath();
+      ctx.roundRect(promptX - 75, promptY - 14, 150, 26, 8);
+      ctx.fill();
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = 'bold 12px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('🏛️ [E] Arkeoloji Müzesine Gir', promptX, promptY);
+      ctx.restore();
+    }
   }
 }

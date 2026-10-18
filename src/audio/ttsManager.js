@@ -60,6 +60,11 @@ class TTSManager {
         utterance.pitch = 0.82;
         utterance.rate = 0.92;
         break;
+      case 'curator':
+        // Scholarly, enthusiastic, articulate professor voice
+        utterance.pitch = 1.16;
+        utterance.rate = 0.96;
+        break;
       default:
         utterance.pitch = 1.0;
         utterance.rate = 1.0;
