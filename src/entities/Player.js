@@ -39,24 +39,112 @@ export class Player {
     this.stepParticleTimer = 0;
     this.audioFootstepTimer = 0;
 
-    // Buffs (e.g. from sleeping in cozy bed)
+    // Buffs (e.g. from sleeping in cozy bed and prehistoric cooking)
     this.restedBuffTimer = 0; // seconds remaining
+    this.buffs = {
+      speed: 0,
+      miner: 0,
+      lucky: 0,
+      royal: 0,
+    };
+    this.buffParticleTimer = 0;
+    this.royalCoinTimer = 0;
   }
 
   getSpeed() {
-    const buff = this.restedBuffTimer > 0 ? 1.25 : 1.0;
+    let buff = 1.0;
+    if (this.restedBuffTimer > 0) buff *= 1.25;
+    if (this.buffs && this.buffs.speed > 0) buff *= 1.5;
+    if (this.buffs && this.buffs.royal > 0) buff *= 1.5;
     return this.baseSpeed * buff;
   }
 
+  getMiningPower() {
+    let power = this.miningPower;
+    if (this.buffs && this.buffs.miner > 0) power *= 2.0;
+    if (this.buffs && this.buffs.royal > 0) power *= 2.0;
+    return Math.round(power);
+  }
+
+  getLuck() {
+    let extraLuck = 0;
+    if (this.buffs && this.buffs.lucky > 0) extraLuck += 3;
+    if (this.buffs && this.buffs.royal > 0) extraLuck += 2;
+    return this.luck + extraLuck;
+  }
+
   getMiningSpeed() {
-    const buff = this.restedBuffTimer > 0 ? 0.75 : 1.0;
+    let buff = 1.0;
+    if (this.restedBuffTimer > 0) buff *= 0.75;
+    if (this.buffs && this.buffs.miner > 0) buff *= 0.85;
     return Math.max(0.08, this.miningSpeed * buff);
   }
 
+  applyBuff(buffKey, duration) {
+    if (!this.buffs) this.buffs = { speed: 0, miner: 0, lucky: 0, royal: 0 };
+    this.buffs[buffKey] = Math.max(this.buffs[buffKey] || 0, duration);
+  }
+
   update(dt, input, world, particles, soundManager) {
-    // Buff timer
+    // Buff timers
     if (this.restedBuffTimer > 0) {
       this.restedBuffTimer -= dt;
+    }
+    if (this.buffs) {
+      for (const k of Object.keys(this.buffs)) {
+        if (this.buffs[k] > 0) {
+          this.buffs[k] -= dt;
+          if (this.buffs[k] < 0) this.buffs[k] = 0;
+        }
+      }
+      // Royal feast passive income
+      if (this.buffs.royal > 0 && this.game && this.game.economy) {
+        this.royalCoinTimer += dt;
+        if (this.royalCoinTimer >= 1.0) {
+          this.royalCoinTimer = 0;
+          this.game.economy.add('coin', 2);
+        }
+      }
+      // Buff particles
+      this.buffParticleTimer += dt;
+      if (this.buffParticleTimer > 0.14) {
+        this.buffParticleTimer = 0;
+        if (this.buffs.speed > 0 || this.buffs.royal > 0) {
+          particles.push(
+            new Particle(this.x - this.facing * 12, this.y + 4, {
+              color: '#38bdf8',
+              speed: 40,
+              size: 3 + Math.random() * 2,
+              life: 0.3,
+              gravity: -10,
+            })
+          );
+        }
+        if (this.buffs.miner > 0 || this.buffs.royal > 0) {
+          particles.push(
+            new Particle(this.x + (Math.random() - 0.5) * 16, this.y - 8, {
+              color: '#f97316',
+              speed: 25,
+              size: 2.5 + Math.random() * 2,
+              life: 0.35,
+              gravity: -25,
+              shape: 'star',
+            })
+          );
+        }
+        if (this.buffs.lucky > 0 || this.buffs.royal > 0) {
+          particles.push(
+            new Particle(this.x + (Math.random() - 0.5) * 20, this.y - 16, {
+              color: '#facc15',
+              speed: 20,
+              size: 3 + Math.random() * 2,
+              life: 0.4,
+              gravity: -35,
+              shape: 'star',
+            })
+          );
+        }
+      }
     }
 
     // Cooldown timers
@@ -199,6 +287,19 @@ export class Player {
       ctx.fillStyle = grad;
       ctx.beginPath();
       ctx.arc(this.facing * 12, -26, 80, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // Magical Star Aura if Lucky or Royal Feast buff is active
+    if (this.buffs && (this.buffs.lucky > 0 || this.buffs.royal > 0)) {
+      ctx.save();
+      const starGrad = ctx.createRadialGradient(0, -10, 8, 0, -10, 95);
+      starGrad.addColorStop(0, 'rgba(250, 204, 21, 0.35)');
+      starGrad.addColorStop(1, 'rgba(250, 204, 21, 0)');
+      ctx.fillStyle = starGrad;
+      ctx.beginPath();
+      ctx.arc(0, -10, 95, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
     }

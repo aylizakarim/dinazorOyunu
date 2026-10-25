@@ -69,6 +69,14 @@ export class NPC {
           actionBtn: 'Müzeyi Aç 🏛️',
           actionType: 'museum',
         };
+      case 'chef':
+        return {
+          title: `${this.name} (${this.title})`,
+          greeting: 'Aha! Burnuma mis gibi prehistorik lezzet kokuları geliyor! Ben Şef Bronto, vadinin gurme aşçısı ve iksir ustasıyım.',
+          advice: 'Ağaçlardan ve kazılardan bulduğun tohumları bostana ek! Topladığın çilek, magma kavunu ve yıldız meyveleriyle sana muazzam koşu hızı, 2 kat kazma gücü ve şans veren nefis çorbalar ve iksirler pişirebilirim!',
+          actionBtn: 'Mutfağı Aç 👨‍🍳',
+          actionType: 'kitchen',
+        };
       default:
         return {
           title: this.name,
@@ -108,6 +116,8 @@ export class NPC {
       this.drawMiner(ctx);
     } else if (this.dinoType === 'curator') {
       this.drawCurator(ctx);
+    } else if (this.dinoType === 'chef') {
+      this.drawChef(ctx);
     }
 
     ctx.restore();
@@ -406,6 +416,95 @@ export class NPC {
     ctx.arc(22, 4, 5, 0, Math.PI * 2);
     ctx.stroke();
     ctx.fillStyle = 'rgba(186, 230, 253, 0.6)';
+    ctx.fill();
+  }
+
+  drawChef(ctx) {
+    // Şef Bronto (Friendly Long-Necked Chef Dinosaur with Toque Hat & Apron)
+    // 1. Legs
+    ctx.fillStyle = '#059669';
+    ctx.fillRect(-10, 2, 7, 10);
+    ctx.fillRect(4, 2, 7, 10);
+
+    // 2. Round Plump Body
+    ctx.fillStyle = '#10b981';
+    ctx.beginPath();
+    ctx.ellipse(0, -5, 17, 15, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 3. Chef White Apron
+    ctx.fillStyle = '#f8fafc';
+    ctx.beginPath();
+    ctx.roundRect(-8, -12, 16, 17, 4);
+    ctx.fill();
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Red neckerchief
+    ctx.fillStyle = '#ef4444';
+    ctx.beginPath();
+    ctx.moveTo(-5, -12);
+    ctx.lineTo(5, -12);
+    ctx.lineTo(0, -7);
+    ctx.closePath();
+    ctx.fill();
+
+    // 4. Long Elegant Bronto Neck
+    ctx.fillStyle = '#10b981';
+    ctx.beginPath();
+    ctx.moveTo(4, -14);
+    ctx.quadraticCurveTo(12, -26, 8, -34);
+    ctx.lineTo(16, -34);
+    ctx.quadraticCurveTo(18, -24, 12, -14);
+    ctx.closePath();
+    ctx.fill();
+
+    // 5. Friendly Head
+    ctx.beginPath();
+    ctx.ellipse(12, -35, 9, 7, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Eye
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.arc(15, -36, 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Cute Smile
+    ctx.strokeStyle = '#065f46';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.arc(16, -33, 3, 0, Math.PI * 0.7);
+    ctx.stroke();
+
+    // 6. Tall Puffy Chef's Hat (Toque Blanche)
+    ctx.fillStyle = '#ffffff';
+    // Hat base band
+    ctx.fillRect(5, -42, 14, 4);
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(5, -42, 14, 4);
+
+    // Hat puffs
+    ctx.beginPath();
+    ctx.arc(7, -46, 5, 0, Math.PI * 2);
+    ctx.arc(12, -49, 6, 0, Math.PI * 2);
+    ctx.arc(17, -46, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // 7. Stirring Wooden Ladle in hand
+    ctx.strokeStyle = '#b45309';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(8, -4);
+    ctx.lineTo(20, 4);
+    ctx.stroke();
+
+    ctx.fillStyle = '#d97706';
+    ctx.beginPath();
+    ctx.ellipse(22, 5, 4, 3, Math.PI / 4, 0, Math.PI * 2);
     ctx.fill();
   }
 }

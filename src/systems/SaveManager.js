@@ -12,7 +12,8 @@ export class SaveManager {
     petSystem,
     storageSystem = null,
     houseInterior = null,
-    museumSystem = null
+    museumSystem = null,
+    farmingSystem = null
   ) {
     this.player = player;
     this.economy = economy;
@@ -25,6 +26,7 @@ export class SaveManager {
     this.storageSystem = storageSystem;
     this.houseInterior = houseInterior;
     this.museumSystem = museumSystem;
+    this.farmingSystem = farmingSystem;
 
     this.saveKey = 'dino_adventure_game_save_v1';
     this.autoSaveTimer = 0;
@@ -42,6 +44,7 @@ export class SaveManager {
         outfit: this.player.outfit,
         tool: this.player.tool,
         restedBuffTimer: this.player.restedBuffTimer || 0,
+        buffs: this.player.buffs || null,
       },
       economy: {
         coins: this.economy.coins,
@@ -64,6 +67,7 @@ export class SaveManager {
       storage: this.storageSystem ? this.storageSystem.serialize() : null,
       interior: this.houseInterior ? this.houseInterior.serialize() : null,
       museum: this.museumSystem ? this.museumSystem.serialize() : null,
+      farming: this.farmingSystem ? this.farmingSystem.serialize() : null,
       quests: {
         completedQuestIds: this.quests.completedQuestIds,
         stats: this.quests.stats,
@@ -112,6 +116,9 @@ export class SaveManager {
       this.player.outfit = data.player.outfit || 'none';
       this.player.tool = data.player.tool || 'pickaxe_wood';
       this.player.restedBuffTimer = data.player.restedBuffTimer || 0;
+      if (data.player.buffs && this.player.buffs) {
+        this.player.buffs = { ...this.player.buffs, ...data.player.buffs };
+      }
     }
 
     if (data.economy) {
@@ -147,6 +154,10 @@ export class SaveManager {
 
     if (data.museum && this.museumSystem) {
       this.museumSystem.deserialize(data.museum);
+    }
+
+    if (data.farming && this.farmingSystem) {
+      this.farmingSystem.deserialize(data.farming);
     }
 
     if (data.quests) {

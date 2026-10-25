@@ -26,6 +26,7 @@ export class World {
       new NPC(1320, 850, 'tailor', 'Ptero Terzi', 'Moda Tasarımcısı', 'tailor'),
       new NPC(1260, 1100, 'miner', 'Stego Madenci', 'Jeolog', 'miner'),
       new NPC(1240, 690, 'curator', 'Profesör Pachy', 'Baş Arkeolog & Paleontolog', 'curator'),
+      new NPC(920, 680, 'chef', 'Şef Bronto', 'Baş Aşçı & Gurme', 'chef'),
     ];
 
     // 2. Create Player's House Plot in the Village
@@ -33,6 +34,9 @@ export class World {
 
     // 3. Museum Plot in North-East Village Plaza
     this.museumPlot = { x: 1250, y: 560, width: 140, height: 100 };
+
+    // 4. Chef Kitchen Station in North-West Village Plaza
+    this.kitchenPlot = { x: 945, y: 668, width: 44, height: 38 };
 
     // 3. Generate Resources across biomes
     this.generateResources();
@@ -127,6 +131,11 @@ export class World {
       return false;
     }
 
+    // Chef kitchen cauldron collision (at 945, 668, width 44, height 38)
+    if (x > 940 && x < 990 && y > 665 && y < 706) {
+      return false;
+    }
+
     return true;
   }
 
@@ -134,6 +143,12 @@ export class World {
     if (!this.museumPlot) return false;
     const dist = Math.hypot(player.x - (this.museumPlot.x + 70), player.y - (this.museumPlot.y + 90));
     return dist < 65;
+  }
+
+  isNearKitchen(player) {
+    if (!this.kitchenPlot) return false;
+    const dist = Math.hypot(player.x - (this.kitchenPlot.x + 22), player.y - (this.kitchenPlot.y + 19));
+    return dist < 55;
   }
 
   getMiningTarget(player) {
@@ -173,22 +188,30 @@ export class World {
     }
   }
 
-  draw(ctx, camera) {
+  draw(ctx, camera, farmingSystem = null) {
     // 1. Draw Ground Biomes
     this.drawTerrain(ctx);
 
     // 2. Draw Village Paths & Fountain
     this.drawVillage(ctx);
 
-    // 3. Draw Decorations (Grass, flowers)
+    // 3. Draw Farm Garden Plots (Dino Bostanı)
+    if (farmingSystem) {
+      farmingSystem.draw(ctx, camera);
+    }
+
+    // 4. Draw Chef Kitchen Cauldron Station
+    this.drawKitchen(ctx, camera.target);
+
+    // 5. Draw Decorations (Grass, flowers)
     this.drawDecorations(ctx);
 
-    // 4. Draw House Plot
+    // 6. Draw House Plot
     if (this.housePlot) {
       this.housePlot.draw(ctx, camera.target);
     }
 
-    // 5. Draw Museum Building
+    // 7. Draw Museum Building
     this.drawMuseum(ctx, camera.target);
   }
 
@@ -462,6 +485,132 @@ export class World {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('🏛️ [E] Arkeoloji Müzesine Gir', promptX, promptY);
+      ctx.restore();
+    }
+  }
+
+  drawKitchen(ctx, player) {
+    if (!this.kitchenPlot) return;
+    const { x, y, width, height } = this.kitchenPlot;
+    const cx = x + width / 2;
+    const cy = y + height / 2;
+
+    ctx.save();
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+    ctx.beginPath();
+    ctx.ellipse(cx, y + height - 2, 26, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Stone Hearth Foundation
+    ctx.fillStyle = '#475569';
+    ctx.beginPath();
+    ctx.roundRect(x, y + 14, width, height - 14, 6);
+    ctx.fill();
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Hot coals glow
+    const coalGrad = ctx.createRadialGradient(cx, y + height - 8, 2, cx, y + height - 8, 18);
+    coalGrad.addColorStop(0, '#f97316');
+    coalGrad.addColorStop(0.5, '#ea580c');
+    coalGrad.addColorStop(1, '#78350f');
+    ctx.fillStyle = coalGrad;
+    ctx.beginPath();
+    ctx.ellipse(cx, y + height - 7, 14, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Giant Copper Cauldron
+    ctx.fillStyle = '#9a3412';
+    ctx.beginPath();
+    ctx.ellipse(cx, y + 16, 18, 14, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#7c2d12';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Cauldron Rim
+    ctx.fillStyle = '#b45309';
+    ctx.beginPath();
+    ctx.ellipse(cx, y + 10, 17, 6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Boiling stew inside
+    ctx.fillStyle = '#16a34a';
+    ctx.beginPath();
+    ctx.ellipse(cx, y + 10, 14, 4.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Stew bubbles
+    const bubbleBob = Math.sin(Date.now() * 0.008);
+    ctx.fillStyle = '#86efac';
+    ctx.beginPath();
+    ctx.arc(cx - 5 + bubbleBob * 2, y + 9, 2.5, 0, Math.PI * 2);
+    ctx.arc(cx + 4 - bubbleBob * 2, y + 11, 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Rising Steam
+    const steamTime = Date.now() * 0.003;
+    ctx.fillStyle = 'rgba(241, 245, 249, 0.45)';
+    ctx.beginPath();
+    ctx.arc(cx - 4 + Math.sin(steamTime) * 4, y - 2, 3.5, 0, Math.PI * 2);
+    ctx.arc(cx + 3 + Math.cos(steamTime) * 4, y - 8, 4.5, 0, Math.PI * 2);
+    ctx.arc(cx - 1 + Math.sin(steamTime * 1.5) * 5, y - 16, 5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Small spice table next to cauldron
+    ctx.fillStyle = '#78350f';
+    ctx.fillRect(x - 18, y + 16, 15, 18);
+    ctx.strokeStyle = '#451a03';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x - 18, y + 16, 15, 18);
+
+    // Spice jars on table
+    ctx.fillStyle = '#ef4444';
+    ctx.fillRect(x - 16, y + 11, 4, 6);
+    ctx.fillStyle = '#facc15';
+    ctx.fillRect(x - 10, y + 11, 4, 6);
+
+    // Wooden sign
+    ctx.fillStyle = '#451a03';
+    ctx.fillRect(cx - 1, y - 28, 2, 16);
+    ctx.fillStyle = '#78350f';
+    ctx.beginPath();
+    ctx.roundRect(cx - 46, y - 36, 92, 16, 3);
+    ctx.fill();
+    ctx.strokeStyle = '#ca8a04';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.fillStyle = '#fef08a';
+    ctx.font = 'bold 8.5px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('👨‍🍳 ŞEFİN MUTFAĞI', cx, y - 25);
+
+    ctx.restore();
+
+    // Prompt if player is near kitchen
+    if (this.isNearKitchen(player)) {
+      ctx.save();
+      const promptX = cx;
+      const promptY = y - 48;
+
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+      ctx.beginPath();
+      ctx.roundRect(promptX - 70, promptY - 12, 140, 24, 6);
+      ctx.fill();
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.fillStyle = '#fde047';
+      ctx.font = 'bold 11px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('🍲 [E] Aşçılık & Mutfak', promptX, promptY);
       ctx.restore();
     }
   }

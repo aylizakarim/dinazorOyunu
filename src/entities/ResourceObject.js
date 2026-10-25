@@ -98,7 +98,8 @@ export class ResourceObject {
     if (this.isDead) return false;
 
     // Critical hit chance based on player luck
-    const isCrit = Math.random() < (player.luck * 0.05);
+    const luck = typeof player.getLuck === 'function' ? player.getLuck() : player.luck;
+    const isCrit = Math.random() < (luck * 0.05);
     const finalDamage = isCrit ? Math.round(amount * 1.8) : amount;
 
     this.hp -= finalDamage;
@@ -227,60 +228,73 @@ export class ResourceObject {
   }
 
   calculateDrops(player) {
-    const luckBonus = 1 + player.luck * 0.15;
+    const effectiveLuck = typeof player.getLuck === 'function' ? player.getLuck() : player.luck;
+    const luckBonus = 1 + effectiveLuck * 0.15;
+    const hasMinerBuff = player.buffs && (player.buffs.miner > 0 || player.buffs.royal > 0);
+    const extraMined = hasMinerBuff ? 1 : 0;
     const drops = [];
 
     switch (this.type) {
       case 'tree_oak':
-        drops.push({ type: 'wood', count: Math.round((3 + Math.floor(Math.random() * 3)) * luckBonus) });
+        drops.push({ type: 'wood', count: Math.round((3 + Math.floor(Math.random() * 3)) * luckBonus) + extraMined });
         drops.push({ type: 'coin', count: Math.round((4 + Math.floor(Math.random() * 4)) * luckBonus) });
+        if (Math.random() < 0.35 + effectiveLuck * 0.03) drops.push({ type: 'seed_berry', count: 1 });
         break;
       case 'tree_pine':
-        drops.push({ type: 'wood', count: Math.round((5 + Math.floor(Math.random() * 4)) * luckBonus) });
+        drops.push({ type: 'wood', count: Math.round((5 + Math.floor(Math.random() * 4)) * luckBonus) + extraMined });
         drops.push({ type: 'coin', count: Math.round((8 + Math.floor(Math.random() * 6)) * luckBonus) });
+        if (Math.random() < 0.3 + effectiveLuck * 0.03) drops.push({ type: 'seed_melon', count: 1 });
         break;
       case 'tree_crystal':
-        drops.push({ type: 'wood', count: Math.round(8 * luckBonus) });
+        drops.push({ type: 'wood', count: Math.round(8 * luckBonus) + extraMined });
         drops.push({ type: 'coin', count: Math.round((20 + Math.floor(Math.random() * 15)) * luckBonus) });
-        drops.push({ type: 'gem', count: Math.round(2 + Math.floor(Math.random() * 2)) });
+        drops.push({ type: 'gem', count: Math.round(2 + Math.floor(Math.random() * 2)) + extraMined });
         if (Math.random() < 0.25) drops.push({ type: 'egg', count: 1 });
+        if (Math.random() < 0.35 + effectiveLuck * 0.03) drops.push({ type: 'seed_star', count: 1 });
         break;
       case 'rock_stone':
-        drops.push({ type: 'stone', count: Math.round((3 + Math.floor(Math.random() * 3)) * luckBonus) });
+        drops.push({ type: 'stone', count: Math.round((3 + Math.floor(Math.random() * 3)) * luckBonus) + extraMined });
         drops.push({ type: 'coin', count: Math.round((5 + Math.floor(Math.random() * 5)) * luckBonus) });
         break;
       case 'rock_iron':
-        drops.push({ type: 'stone', count: Math.round((6 + Math.floor(Math.random() * 4)) * luckBonus) });
+        drops.push({ type: 'stone', count: Math.round((6 + Math.floor(Math.random() * 4)) * luckBonus) + extraMined });
         drops.push({ type: 'coin', count: Math.round((12 + Math.floor(Math.random() * 8)) * luckBonus) });
         if (Math.random() < 0.3) drops.push({ type: 'gem', count: 1 });
         break;
       case 'rock_gold':
-        drops.push({ type: 'stone', count: Math.round(4 * luckBonus) });
+        drops.push({ type: 'stone', count: Math.round(4 * luckBonus) + extraMined });
         drops.push({ type: 'coin', count: Math.round((25 + Math.floor(Math.random() * 15)) * luckBonus) });
         if (Math.random() < 0.6) drops.push({ type: 'gem', count: 1 + Math.floor(Math.random() * 2) });
         if (Math.random() < 0.2) drops.push({ type: 'egg', count: 1 });
         break;
       case 'rock_gem':
-        drops.push({ type: 'stone', count: Math.round(5 * luckBonus) });
+        drops.push({ type: 'stone', count: Math.round(5 * luckBonus) + extraMined });
         drops.push({ type: 'coin', count: Math.round(40 * luckBonus) });
-        drops.push({ type: 'gem', count: Math.round(3 + Math.floor(Math.random() * 3)) });
+        drops.push({ type: 'gem', count: Math.round(3 + Math.floor(Math.random() * 3)) + extraMined });
         if (Math.random() < 0.3) drops.push({ type: 'egg', count: 1 });
         break;
       case 'rock_meteor':
         drops.push({ type: 'coin', count: Math.round((80 + Math.floor(Math.random() * 40)) * luckBonus) });
-        drops.push({ type: 'gem', count: Math.round((6 + Math.floor(Math.random() * 6)) * luckBonus) });
-        drops.push({ type: 'fossil', count: 2 });
+        drops.push({ type: 'gem', count: Math.round((6 + Math.floor(Math.random() * 6)) * luckBonus) + extraMined });
+        drops.push({ type: 'fossil', count: 2 + extraMined });
         if (Math.random() < 0.45) drops.push({ type: 'egg', count: 1 });
         // 50% chance to drop a rare prehistoric museum fossil bone
-        if (Math.random() < 0.5 + player.luck * 0.05) drops.push({ type: 'rare_bone', count: 1 });
+        if (Math.random() < 0.5 + effectiveLuck * 0.05) drops.push({ type: 'rare_bone', count: 1 });
+        // High tier seed drops
+        if (Math.random() < 0.35 + effectiveLuck * 0.04) drops.push({ type: 'seed_golden', count: 1 });
+        else if (Math.random() < 0.35) drops.push({ type: 'seed_star', count: 1 });
         break;
       case 'dig_spot':
         drops.push({ type: 'coin', count: Math.round((15 + Math.floor(Math.random() * 15)) * luckBonus) });
-        drops.push({ type: 'fossil', count: 1 });
+        drops.push({ type: 'fossil', count: 1 + extraMined });
         if (Math.random() < 0.4) drops.push({ type: 'gem', count: 1 });
         if (Math.random() < 0.25) drops.push({ type: 'egg', count: 1 });
         // 40% chance to drop a rare prehistoric museum fossil bone
-        if (Math.random() < 0.4 + player.luck * 0.05) drops.push({ type: 'rare_bone', count: 1 });
+        if (Math.random() < 0.4 + effectiveLuck * 0.05) drops.push({ type: 'rare_bone', count: 1 });
+        // 35% chance to unearth ancient seeds
+        if (Math.random() < 0.35) {
+          drops.push({ type: Math.random() > 0.5 ? 'seed_berry' : 'seed_melon', count: 1 });
+        }
         break;
     }
 

@@ -2,6 +2,7 @@ import confetti from 'canvas-confetti';
 import { HousePlot } from '../entities/HousePlot.js';
 import { FURNITURE_RECIPES } from '../entities/HouseInterior.js';
 import { EXHIBIT_DEFINITIONS } from '../systems/MuseumSystem.js';
+import { SEED_DEFINITIONS, RECIPES } from '../systems/FarmingSystem.js';
 import { ttsManager } from '../audio/ttsManager.js';
 
 export class UIManager {
@@ -25,9 +26,36 @@ export class UIManager {
     document.getElementById('btn-house')?.addEventListener('click', () => this.openHouseModal());
     document.getElementById('btn-pet')?.addEventListener('click', () => this.openPetModal());
     document.getElementById('btn-museum')?.addEventListener('click', () => this.openMuseumModal());
+    document.getElementById('btn-farm')?.addEventListener('click', () => this.openFarmModal());
+    document.getElementById('btn-kitchen')?.addEventListener('click', () => this.openKitchenModal());
     document.getElementById('btn-backup')?.addEventListener('click', () => this.openBackupModal());
     document.getElementById('btn-sound')?.addEventListener('click', () => this.toggleSound());
     document.getElementById('btn-help')?.addEventListener('click', () => this.openHelpModal());
+
+    // Farm quick actions
+    document.getElementById('btn-farm-water-all')?.addEventListener('click', () => {
+      const watered = this.game.farmingSystem.waterAll();
+      if (watered > 0) {
+        this.showToast(`💧 ${watered} bostan parseli sulandı! (Büyüme hızı 2x)`);
+      } else {
+        this.showToast('Tüm parseller zaten sulanmış veya boş!');
+      }
+      this.renderFarm();
+      this.game.saveManager.save();
+    });
+
+    document.getElementById('btn-farm-harvest-all')?.addEventListener('click', () => {
+      const harvested = this.game.farmingSystem.harvestAll();
+      if (harvested > 0) {
+        confetti({ particleCount: 60, spread: 60 });
+        this.showToast(`🧺 ${harvested} olgun bostan parseli başarıyla hasat edildi!`);
+      } else {
+        this.showToast('Henüz hasat edilecek olgun meyve yok!');
+      }
+      this.updateHUD();
+      this.renderFarm();
+      this.game.saveManager.save();
+    });
 
     // Backup actions
     document.getElementById('btn-export-save')?.addEventListener('click', () => {
@@ -164,16 +192,75 @@ export class UIManager {
       }
     }
 
-    // Well-rested buff display
-    const buffEl = document.getElementById('hud-buff');
-    const buffTimerEl = document.getElementById('buff-timer');
-    if (buffEl && this.game.player) {
-      if (this.game.player.restedBuffTimer > 0) {
-        buffEl.style.display = 'block';
-        if (buffTimerEl) buffTimerEl.textContent = Math.ceil(this.game.player.restedBuffTimer);
-      } else {
-        buffEl.style.display = 'none';
+    // Dynamic Active Buffs Display
+    const buffContainer = document.getElementById('hud-buff-container');
+    if (buffContainer && this.game.player) {
+      const activeBuffs = [];
+      const p = this.game.player;
+
+      if (p.restedBuffTimer > 0) {
+        activeBuffs.push({
+          icon: '🛌',
+          text: `İyi Dinlenmiş: ${Math.ceil(p.restedBuffTimer)} sn`,
+          bonus: '+%25 Hız',
+          color: '#facc15',
+          bg: 'rgba(234, 179, 8, 0.22)',
+          border: '#eab308',
+        });
       }
+
+      if (p.buffs) {
+        if (p.buffs.speed > 0) {
+          activeBuffs.push({
+            icon: '⚡',
+            text: `Hız Şurubu: ${Math.ceil(p.buffs.speed)} sn`,
+            bonus: '+%50 Hız',
+            color: '#38bdf8',
+            bg: 'rgba(56, 189, 248, 0.22)',
+            border: '#0284c7',
+          });
+        }
+        if (p.buffs.miner > 0) {
+          activeBuffs.push({
+            icon: '⛏️',
+            text: `Mega Madenci: ${Math.ceil(p.buffs.miner)} sn`,
+            bonus: '2x Güç & +1 Maden',
+            color: '#fb923c',
+            bg: 'rgba(251, 146, 60, 0.22)',
+            border: '#ea580c',
+          });
+        }
+        if (p.buffs.lucky > 0) {
+          activeBuffs.push({
+            icon: '🌟',
+            text: `Yıldız Eliksiri: ${Math.ceil(p.buffs.lucky)} sn`,
+            bonus: '+3 Şans & Parıltı',
+            color: '#fde047',
+            bg: 'rgba(253, 224, 71, 0.22)',
+            border: '#ca8a04',
+          });
+        }
+        if (p.buffs.royal > 0) {
+          activeBuffs.push({
+            icon: '👑',
+            text: `Kral Ziyafeti: ${Math.ceil(p.buffs.royal)} sn`,
+            bonus: 'Hız + 2x Güç + 2$/sn',
+            color: '#ec4899',
+            bg: 'rgba(236, 72, 153, 0.22)',
+            border: '#db2777',
+          });
+        }
+      }
+
+      buffContainer.innerHTML = activeBuffs
+        .map(
+          (b) => `
+        <div style="background:${b.bg};border:1.5px solid ${b.border};color:${b.color};padding:5px 10px;border-radius:10px;font-size:11.5px;font-weight:700;backdrop-filter:blur(6px);box-shadow:0 2px 6px rgba(0,0,0,0.3)">
+          <span>${b.icon}</span> ${b.text} <span style="opacity:0.85;font-size:10.5px">(${b.bonus})</span>
+        </div>
+      `
+        )
+        .join('');
     }
 
     // Check ready fossil donations for museum badge
@@ -926,6 +1013,7 @@ export class UIManager {
       else if (npc.dinoType === 'carpenter') avatarEl.textContent = '🔨';
       else if (npc.dinoType === 'tailor') avatarEl.textContent = '🪡';
       else if (npc.dinoType === 'curator') avatarEl.textContent = '🦕';
+      else if (npc.dinoType === 'chef') avatarEl.textContent = '👨‍🍳';
       else avatarEl.textContent = '⛏️';
     }
 
@@ -969,6 +1057,8 @@ export class UIManager {
         else if (dialog.actionType === 'house') this.openHouseModal();
         else if (dialog.actionType === 'quests') this.openQuestsModal();
         else if (dialog.actionType === 'museum') this.openMuseumModal();
+        else if (dialog.actionType === 'kitchen') this.openKitchenModal();
+        else if (dialog.actionType === 'farm') this.openFarmModal();
       };
     }
 
@@ -1166,5 +1256,265 @@ export class UIManager {
 
       container.appendChild(eggGrid);
     }
+  }
+
+  // --- FARM & BOSTAN MODAL ---
+  openFarmModal() {
+    this.renderFarm();
+    this.openModal('modal-farm');
+  }
+
+  renderFarm() {
+    const farming = this.game.farmingSystem;
+    if (!farming) return;
+
+    // 1. Basket Harvest Counts
+    const cropContainer = document.getElementById('farm-crop-counts');
+    if (cropContainer) {
+      cropContainer.innerHTML = `
+        <span style="color:#ef4444" title="Prehistorik Çilek">🍓 ${farming.crops.crop_berry || 0}</span>
+        <span style="color:#f59e0b" title="Magma Kavunu">🍈 ${farming.crops.crop_melon || 0}</span>
+        <span style="color:#38bdf8" title="Yıldız Meyvesi">⭐ ${farming.crops.crop_star || 0}</span>
+        <span style="color:#facc15" title="Altın Dino Meyvesi">🍍 ${farming.crops.crop_golden || 0}</span>
+      `;
+    }
+
+    // 2. Plots Grid
+    const plotsContainer = document.getElementById('farm-plots-container');
+    if (plotsContainer) {
+      plotsContainer.innerHTML = '';
+
+      farming.plots.forEach((p) => {
+        const card = document.createElement('div');
+        card.style.background = '#1e293b';
+        card.style.border = p.isWatered ? '1.5px solid #0284c7' : '1px solid #475569';
+        card.style.borderRadius = '10px';
+        card.style.padding = '10px';
+        card.style.display = 'flex';
+        card.style.flexDirection = 'column';
+        card.style.gap = '8px';
+
+        const def = p.seedType ? SEED_DEFINITIONS[p.seedType] : null;
+        let stateBadge = '';
+        let iconHtml = '🟫';
+        let actionBtnHtml = '';
+
+        if (p.state === 'empty') {
+          stateBadge = '<span style="color:#94a3b8;font-size:11px">Boş Toprak</span>';
+          iconHtml = '🌱';
+
+          // Seed select buttons
+          const availableSeeds = Object.entries(farming.seeds).filter(([k, v]) => v > 0);
+          if (availableSeeds.length > 0) {
+            actionBtnHtml = `
+              <div style="display:flex;gap:4px;flex-wrap:wrap">
+                ${availableSeeds
+                  .map(
+                    ([k]) => `
+                  <button class="btn-action btn-plant-seed" data-seed="${k}" data-plot="${p.id}" style="font-size:11px;padding:4px 8px">
+                    ${SEED_DEFINITIONS[k]?.icon} Ek
+                  </button>
+                `
+                  )
+                  .join('')}
+              </div>
+            `;
+          } else {
+            actionBtnHtml = `<span style="font-size:11px;color:#f87171">Tohumun yok (Ağaç kaz!)</span>`;
+          }
+        } else if (p.state === 'ready') {
+          stateBadge = '<span style="color:#4ade80;font-size:11px;font-weight:700">HASADA HAZIR! ✨</span>';
+          iconHtml = def ? def.icon : '🍓';
+          actionBtnHtml = `<button class="btn-action btn-harvest-plot" data-plot="${p.id}" style="background:#16a34a;font-size:12px;padding:6px 12px">🧺 Hasat Et</button>`;
+        } else {
+          const pct = Math.min(100, Math.round((p.growthTimer / p.growthDuration) * 100));
+          const stageName = p.state === 'sprout' ? 'Filizleniyor' : 'Büyüyor';
+          stateBadge = `<span style="color:#38bdf8;font-size:11px">${stageName} (%${pct})</span>`;
+          iconHtml = p.state === 'sprout' ? '🌿' : '🌳';
+
+          const waterBtn = !p.isWatered
+            ? `<button class="btn-action btn-water-plot" data-plot="${p.id}" style="background:#0284c7;font-size:11px;padding:4px 8px">💧 Sula</button>`
+            : '<span style="color:#38bdf8;font-size:11px">💧 Sulanmış</span>';
+
+          actionBtnHtml = `
+            <div style="width:100%;height:6px;background:#334155;border-radius:3px;overflow:hidden">
+              <div style="width:${pct}%;height:100%;background:#22c55e"></div>
+            </div>
+            <div style="display:flex;justify-content:flex-end">${waterBtn}</div>
+          `;
+        }
+
+        card.innerHTML = `
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-weight:700;font-size:12px;color:#cbd5e1">Parsel #${p.id + 1}</span>
+            <span style="font-size:18px">${iconHtml}</span>
+          </div>
+          <div style="font-size:12px;color:${def ? def.color : '#e2e8f0'}">
+            ${def ? def.cropName : 'Nadas'}
+          </div>
+          <div>${stateBadge}</div>
+          <div style="margin-top:auto">${actionBtnHtml}</div>
+        `;
+
+        // Bind plot buttons
+        card.querySelectorAll('.btn-plant-seed').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const seed = btn.getAttribute('data-seed');
+            const plotId = parseInt(btn.getAttribute('data-plot'), 10);
+            if (farming.plant(plotId, seed)) {
+              this.showToast(`🌱 ${SEED_DEFINITIONS[seed]?.name} başarıyla ekildi ve sulandı!`);
+              this.renderFarm();
+              this.game.saveManager.save();
+            }
+          });
+        });
+
+        card.querySelector('.btn-water-plot')?.addEventListener('click', () => {
+          const plotId = parseInt(card.querySelector('.btn-water-plot').getAttribute('data-plot'), 10);
+          if (farming.water(plotId)) {
+            this.showToast('💧 Parsel sulandı! Büyüme hızı 2 katına çıktı!');
+            this.renderFarm();
+            this.game.saveManager.save();
+          }
+        });
+
+        card.querySelector('.btn-harvest-plot')?.addEventListener('click', () => {
+          const plotId = parseInt(card.querySelector('.btn-harvest-plot').getAttribute('data-plot'), 10);
+          if (farming.harvest(plotId)) {
+            this.updateHUD();
+            this.renderFarm();
+            this.game.saveManager.save();
+          }
+        });
+
+        plotsContainer.appendChild(card);
+      });
+    }
+
+    // 3. Seeds List
+    const seedsContainer = document.getElementById('farm-seeds-container');
+    if (seedsContainer) {
+      seedsContainer.innerHTML = '';
+
+      Object.values(SEED_DEFINITIONS).forEach((seed) => {
+        const count = farming.seeds[seed.id] || 0;
+        const card = document.createElement('div');
+        card.style.background = '#1e293b';
+        card.style.border = '1px solid #334155';
+        card.style.borderRadius = '10px';
+        card.style.padding = '10px';
+        card.style.display = 'flex';
+        card.style.justifyContent = 'space-between';
+        card.style.alignItems = 'center';
+
+        const canPlant = count > 0 && farming.plots.some((p) => p.state === 'empty');
+
+        card.innerHTML = `
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:24px">${seed.icon}</span>
+            <div>
+              <div style="font-size:12.5px;font-weight:700;color:${seed.color}">${seed.name}</div>
+              <div style="font-size:11px;color:#94a3b8">Adet: <strong style="color:#fff">${count}</strong> • Büyüme: ${seed.growthDuration}s</div>
+            </div>
+          </div>
+          <button class="btn-action btn-quick-plant" data-seed="${seed.id}" ${!canPlant ? 'disabled' : ''} style="font-size:11px;padding:6px 10px">
+            Boş Yere Ek
+          </button>
+        `;
+
+        card.querySelector('.btn-quick-plant')?.addEventListener('click', () => {
+          const emptyPlot = farming.plots.find((p) => p.state === 'empty');
+          if (emptyPlot && farming.plant(emptyPlot.id, seed.id)) {
+            this.showToast(`🌱 ${seed.name} Parsel #${emptyPlot.id + 1}'e ekildi!`);
+            this.renderFarm();
+            this.game.saveManager.save();
+          }
+        });
+
+        seedsContainer.appendChild(card);
+      });
+    }
+  }
+
+  // --- CHEF BRONTO KITCHEN MODAL ---
+  openKitchenModal() {
+    this.renderKitchen();
+    this.openModal('modal-kitchen');
+  }
+
+  renderKitchen() {
+    const container = document.getElementById('kitchen-recipes-container');
+    const farming = this.game.farmingSystem;
+    const eco = this.game.economy;
+    if (!container || !farming) return;
+
+    container.innerHTML = '';
+
+    RECIPES.forEach((rec) => {
+      const card = document.createElement('div');
+      card.className = 'shop-card';
+      card.style.background = '#1e293b';
+      card.style.border = '1px solid #334155';
+      card.style.borderRadius = '12px';
+      card.style.padding = '12px';
+
+      const canAfford = farming.canAffordRecipe(rec);
+
+      // Cost requirements badges
+      const costBadges = Object.entries(rec.cost).map(([k, amount]) => {
+        let label = '';
+        let have = 0;
+        if (k === 'crop_berry') { label = '🍓 Çilek'; have = farming.crops.crop_berry || 0; }
+        else if (k === 'crop_melon') { label = '🍈 Magma Kavunu'; have = farming.crops.crop_melon || 0; }
+        else if (k === 'crop_star') { label = '⭐ Yıldız Meyvesi'; have = farming.crops.crop_star || 0; }
+        else if (k === 'crop_golden') { label = '🍍 Altın Meyve'; have = farming.crops.crop_golden || 0; }
+        else if (k === 'wood') { label = '🪵 Odun'; have = eco.wood || 0; }
+        else if (k === 'stone') { label = '🪨 Taş'; have = eco.stone || 0; }
+        else if (k === 'gems') { label = '💎 Mücevher'; have = eco.gems || 0; }
+        else if (k === 'coins') { label = '🪙 Altın'; have = eco.coins || 0; }
+
+        const isMet = have >= amount;
+        return `
+          <span style="font-size:11.5px;color:${isMet ? '#4ade80' : '#f87171'};background:rgba(0,0,0,0.3);padding:3px 7px;border-radius:6px;border:1px solid ${isMet ? 'rgba(74,222,128,0.3)' : 'rgba(248,113,113,0.3)'}">
+            ${label}: ${have}/${amount} ${isMet ? '✓' : '✗'}
+          </span>
+        `;
+      });
+
+      card.innerHTML = `
+        <div class="card-top" style="display:flex;gap:12px;align-items:flex-start">
+          <div style="font-size:32px;background:#0f172a;width:48px;height:48px;border-radius:10px;display:flex;align-items:center;justify-content:center;border:1px solid #334155">
+            ${rec.icon}
+          </div>
+          <div style="flex:1">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
+              <h4 style="color:#fde047;font-size:14px;margin:0">${rec.name}</h4>
+              <span style="background:rgba(56,189,248,0.15);color:#38bdf8;font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;border:1px solid #0284c7">
+                ${rec.effectDesc}
+              </span>
+            </div>
+            <p style="font-size:12px;color:#94a3b8;margin:4px 0 8px 0">${rec.desc}</p>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              ${costBadges.join('')}
+            </div>
+          </div>
+        </div>
+        <div class="card-bottom" style="display:flex;justify-content:flex-end;margin-top:10px">
+          <button class="btn-action btn-cook-recipe" ${!canAfford ? 'disabled' : ''} style="background:${canAfford ? '#eab308' : '#475569'};color:${canAfford ? '#000' : '#94a3b8'};font-weight:700;font-size:12px;padding:6px 16px">
+            Pişir ve İç 🍲
+          </button>
+        </div>
+      `;
+
+      card.querySelector('.btn-cook-recipe')?.addEventListener('click', () => {
+        if (farming.cookRecipe(rec.id)) {
+          this.updateHUD();
+          this.renderKitchen();
+          this.game.saveManager.save();
+        }
+      });
+
+      container.appendChild(card);
+    });
   }
 }

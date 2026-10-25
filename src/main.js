@@ -12,6 +12,7 @@ import { StorageSystem } from './systems/StorageSystem.js';
 import { HouseInterior } from './entities/HouseInterior.js';
 import { MuseumSystem } from './systems/MuseumSystem.js';
 import { MuseumInterior } from './entities/MuseumInterior.js';
+import { FarmingSystem } from './systems/FarmingSystem.js';
 import { UIManager } from './ui/UIManager.js';
 
 class Game {
@@ -38,6 +39,8 @@ class Game {
     this.houseInterior = new HouseInterior(this);
     this.museumSystem = new MuseumSystem(this);
     this.museumInterior = new MuseumInterior(this);
+    this.farmingSystem = new FarmingSystem(this);
+    this.player.game = this;
 
     this.saveManager = new SaveManager(
       this.player,
@@ -50,7 +53,8 @@ class Game {
       this.petSystem,
       this.storageSystem,
       this.houseInterior,
-      this.museumSystem
+      this.museumSystem,
+      this.farmingSystem
     );
     this.uiManager = new UIManager(this);
 
@@ -306,6 +310,33 @@ class Game {
       return;
     }
 
+    // Check Chef Kitchen Station in Village
+    if (!speakAloud && this.world.isNearKitchen(this.player)) {
+      this.uiManager.openKitchenModal();
+      return;
+    }
+
+    // Check Dino Bostanı Garden Plots
+    if (!speakAloud && this.farmingSystem) {
+      const nearPlot = this.farmingSystem.getNearestPlot(this.player);
+      if (nearPlot) {
+        if (nearPlot.state === 'ready') {
+          this.farmingSystem.harvest(nearPlot.id);
+          this.uiManager.updateHUD();
+          this.saveManager.save();
+          return;
+        } else if (nearPlot.state !== 'empty' && !nearPlot.isWatered) {
+          this.farmingSystem.water(nearPlot.id);
+          this.uiManager.showToast('💧 Parsel sulandı! Büyüme hızı 2 katına çıktı!');
+          this.saveManager.save();
+          return;
+        } else {
+          this.uiManager.openFarmModal();
+          return;
+        }
+      }
+    }
+
     // Check House Plot (only on E key, not L)
     if (!speakAloud && this.world.housePlot && this.world.housePlot.isNear(this.player)) {
       if (this.world.housePlot.tier >= 1) {
@@ -343,7 +374,7 @@ class Game {
     const target = this.world.getMiningTarget(this.player);
     if (target) {
       const destroyed = target.takeDamage(
-        this.player.miningPower,
+        this.player.getMiningPower(),
         this.player,
         this.particles,
         this.floatingTexts,
@@ -405,7 +436,7 @@ class Game {
             this.player.facing = res.x >= this.player.x ? 1 : -1;
             if (this.player.startSwing()) {
               const destroyed = res.takeDamage(
-                this.player.miningPower,
+                this.player.getMiningPower(),
                 this.player,
                 this.particles,
                 this.floatingTexts,
@@ -446,8 +477,9 @@ class Game {
   }
 
   update(dt) {
-    // Always update Museum System tourist income
+    // Always update Museum System tourist income & Farming System
     this.museumSystem.update(dt, this.economy);
+    this.farmingSystem.update(dt);
 
     // Continuous mining when Space or Mouse is held (in world scene)
     if (this.currentScene === 'world') {
@@ -585,6 +617,14 @@ class Game {
           const randomBone = this.museumSystem.getRandomMissingBone();
           this.museumSystem.addBone(randomBone.id, this.soundManager, this.floatingTexts);
           this.saveManager.save();
+        } else if (collected.type.startsWith('seed_')) {
+          this.farmingSystem.addSeed(collected.type, collected.amount);
+          this.soundManager.playTone(520, 0.1, 'sine', 0.08, 100);
+          this.saveManager.save();
+        } else if (collected.type.startsWith('crop_')) {
+          this.farmingSystem.addCrop(collected.type, collected.amount);
+          this.soundManager.playItemPickup('fossil');
+          this.saveManager.save();
         } else {
           this.economy.add(collected.type, collected.amount);
           this.soundManager.playItemPickup(collected.type);
@@ -598,6 +638,14 @@ class Game {
           fossil: `+${collected.amount} Fosil 🦴`,
           egg: `+1 Dinozor Yumurtası! 🥚`,
           rare_bone: `+1 Nadir Fosil Kemiği! 🦴`,
+          seed_berry: `+${collected.amount} Çilek Tohumu 🌱`,
+          seed_melon: `+${collected.amount} Kavun Tohumu 🌱`,
+          seed_star: `+${collected.amount} Yıldız Tohumu ⭐`,
+          seed_golden: `+${collected.amount} Altın Tohum 🍍`,
+          crop_berry: `+${collected.amount} Prehistorik Çilek 🍓`,
+          crop_melon: `+${collected.amount} Magma Kavunu 🍈`,
+          crop_star: `+${collected.amount} Yıldız Meyvesi ⭐`,
+          crop_golden: `+${collected.amount} Altın Dino Meyvesi 🍍`,
         };
         const colors = {
           coin: '#facc15',
@@ -607,6 +655,14 @@ class Game {
           fossil: '#e2e8f0',
           egg: '#ec4899',
           rare_bone: '#facc15',
+          seed_berry: '#ef4444',
+          seed_melon: '#f59e0b',
+          seed_star: '#38bdf8',
+          seed_golden: '#facc15',
+          crop_berry: '#ef4444',
+          crop_melon: '#f59e0b',
+          crop_star: '#38bdf8',
+          crop_golden: '#facc15',
         };
 
         this.floatingTexts.push({
@@ -753,8 +809,8 @@ class Game {
     }
 
     // --- WORLD SCENE RENDER ---
-    // 1. Draw World terrain & paths
-    this.world.draw(this.ctx, this.camera);
+    // 1. Draw World terrain, garden & paths
+    this.world.draw(this.ctx, this.camera, this.farmingSystem);
 
     // 2. Draw Target Reticle on targeted mineable resource
     const targetRes = this.world.getMiningTarget(this.player);

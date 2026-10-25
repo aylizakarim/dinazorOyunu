@@ -236,6 +236,115 @@ export class DroppedItem {
       ctx.arc(8, 4, 3.5, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
+    } else if (this.type.startsWith('seed_')) {
+      // Seed Pouch / Pack
+      const seedColor = this.type === 'seed_berry' ? '#ef4444' : (this.type === 'seed_melon' ? '#f59e0b' : (this.type === 'seed_star' ? '#38bdf8' : '#facc15'));
+      ctx.fillStyle = '#78350f';
+      ctx.beginPath();
+      ctx.roundRect(-7, -8, 14, 16, 3);
+      ctx.fill();
+      ctx.strokeStyle = '#d97706';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Seed tag color
+      ctx.fillStyle = seedColor;
+      ctx.beginPath();
+      ctx.arc(0, 0, 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Leaf sprout on top of pouch
+      ctx.fillStyle = '#22c55e';
+      ctx.beginPath();
+      ctx.ellipse(0, -9, 3, 2, -Math.PI / 4, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (this.type === 'crop_berry') {
+      // Prehistoric Strawberry
+      ctx.fillStyle = '#ef4444';
+      ctx.beginPath();
+      ctx.moveTo(0, 8);
+      ctx.bezierCurveTo(-9, 4, -8, -5, 0, -4);
+      ctx.bezierCurveTo(8, -5, 9, 4, 0, 8);
+      ctx.fill();
+      ctx.strokeStyle = '#991b1b';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Yellow seeds on strawberry
+      ctx.fillStyle = '#fef08a';
+      ctx.fillRect(-3, -1, 1.5, 1.5);
+      ctx.fillRect(2, -1, 1.5, 1.5);
+      ctx.fillRect(-1, 3, 1.5, 1.5);
+
+      // Green cap leaves
+      ctx.fillStyle = '#22c55e';
+      ctx.beginPath();
+      ctx.moveTo(-5, -4);
+      ctx.lineTo(0, -7);
+      ctx.lineTo(5, -4);
+      ctx.lineTo(0, -3);
+      ctx.fill();
+    } else if (this.type === 'crop_melon') {
+      // Magma Melon
+      ctx.fillStyle = '#f59e0b';
+      ctx.beginPath();
+      ctx.arc(0, 0, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#b45309';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Lava stripes
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(0, 0, 8, -Math.PI * 0.4, Math.PI * 0.4);
+      ctx.stroke();
+
+      // Stalk
+      ctx.fillStyle = '#15803d';
+      ctx.fillRect(-1, -11, 2, 4);
+    } else if (this.type === 'crop_star') {
+      // Luminous Star Fruit
+      ctx.fillStyle = 'rgba(56, 189, 248, 0.35)';
+      ctx.beginPath();
+      ctx.arc(0, 0, 12, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#38bdf8';
+      ctx.beginPath();
+      ctx.arc(0, 0, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.font = '10px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('⭐', 0, 0);
+    } else if (this.type === 'crop_golden') {
+      // Golden Dragon Fruit
+      ctx.fillStyle = 'rgba(250, 204, 21, 0.4)';
+      ctx.beginPath();
+      ctx.arc(0, 0, 13, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#facc15';
+      ctx.beginPath();
+      ctx.ellipse(0, 2, 7, 9, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#ca8a04';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Crown spiky leaves
+      ctx.fillStyle = '#22c55e';
+      ctx.beginPath();
+      ctx.moveTo(-4, -6);
+      ctx.lineTo(0, -12);
+      ctx.lineTo(4, -6);
+      ctx.fill();
     }
 
     ctx.restore();

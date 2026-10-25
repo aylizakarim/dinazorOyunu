@@ -66,6 +66,12 @@
           <span>🏛️</span> Müze
           <span id="badge-museum" class="badge" style="display:none">0</span>
         </button>
+        <button id="btn-farm" class="btn-hud" title="Dino Bostanı & Prehistorik Tarım">
+          <span>🍓</span> Bostan
+        </button>
+        <button id="btn-kitchen" class="btn-hud" title="Şef Bronto'nun Aşçılık Kazanı">
+          <span>👨‍🍳</span> Mutfak
+        </button>
         <button id="btn-backup" class="btn-hud" title="Kayıt Dosyası İndir / Yükle (JSON)">
           <span>💾</span> Kayıt
         </button>
@@ -77,9 +83,11 @@
         </button>
       </div>
 
-      <!-- Active Buff Badge -->
-      <div id="hud-buff" style="display:none;position:absolute;top:60px;right:16px;background:rgba(234,179,8,0.2);border:1.5px solid #facc15;color:#facc15;padding:6px 12px;border-radius:12px;font-size:12px;font-weight:700;backdrop-filter:blur(6px);pointer-events:auto">
-        ✨ İyi Dinlenmiş: <span id="buff-timer">180</span>s (+%25 Hız)
+      <!-- Active Buffs Display -->
+      <div id="hud-buff-container" style="display:flex;flex-direction:column;gap:6px;position:absolute;top:60px;right:16px;pointer-events:auto;z-index:40">
+        <div id="hud-buff" style="display:none;background:rgba(234,179,8,0.2);border:1.5px solid #facc15;color:#facc15;padding:6px 12px;border-radius:12px;font-size:12px;font-weight:700;backdrop-filter:blur(6px)">
+          ✨ İyi Dinlenmiş: <span id="buff-timer">180</span>s (+%25 Hız)
+        </div>
       </div>
     </div>
 
@@ -296,6 +304,65 @@
             Görevleri tamamla, bolca altın, maden ve prestij ödülleri kazan!
           </p>
           <div id="quests-container" style="display:flex;flex-direction:column;gap:12px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dino Farm / Bostan Modal -->
+    <div id="modal-farm" class="modal-overlay">
+      <div class="modal-card" style="max-width:660px">
+        <div class="modal-header">
+          <div class="modal-title"><span>🍓</span> Dinozor Bostanı & Prehistorik Tarım</div>
+          <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body" style="display:flex;flex-direction:column;gap:16px">
+          <!-- Harvest & Quick Actions bar -->
+          <div style="background:#0f172a;border:1px solid #334155;border-radius:12px;padding:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+            <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+              <div style="font-size:13px;font-weight:700;color:#94a3b8">Sepetim:</div>
+              <div id="farm-crop-counts" style="display:flex;gap:10px;font-size:13px;font-weight:700"></div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button id="btn-farm-water-all" class="btn-action" style="background:#0284c7;font-size:12px;padding:6px 12px">💧 Tümünü Sula</button>
+              <button id="btn-farm-harvest-all" class="btn-action" style="background:#16a34a;font-size:12px;padding:6px 12px">🧺 Tümünü Hasat Et</button>
+            </div>
+          </div>
+
+          <!-- 6 Soil Plots Grid -->
+          <div>
+            <h4 style="font-size:13px;color:#cbd5e1;margin-bottom:8px">🌱 Toprak Yatakları (Bostan Parselleri)</h4>
+            <div id="farm-plots-container" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:10px"></div>
+          </div>
+
+          <!-- Seeds Inventory -->
+          <div>
+            <h4 style="font-size:13px;color:#cbd5e1;margin-bottom:8px">📦 Tohum Torbam</h4>
+            <div id="farm-seeds-container" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:10px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chef Bronto's Kitchen Modal -->
+    <div id="modal-kitchen" class="modal-overlay">
+      <div class="modal-card" style="max-width:680px">
+        <div class="modal-header">
+          <div class="modal-title"><span>👨‍🍳</span> Şef Bronto'nun Aşçılık Kazanı & İksir Mutfağı</div>
+          <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
+          <div style="background:rgba(234,179,8,0.12);border:1.5px solid #eab308;border-radius:12px;padding:12px;display:flex;align-items:center;gap:12px">
+            <div style="font-size:36px">🍲</div>
+            <div>
+              <h4 style="color:#fde047;font-size:14px;margin-bottom:2px">Prehistorik Gurme İksirleri ve Çorbaları</h4>
+              <p style="font-size:12px;color:#cbd5e1;margin:0">
+                Bostanda yetiştirdiğin meyveler ve vadiden çıkardığın minerallerle güçlendirici iksirler hazırla! İçtiğin yemekler sana olağanüstü hız, madencilik gücü ve şans bahşeder.
+              </p>
+            </div>
+          </div>
+
+          <!-- Kitchen Recipes List -->
+          <div id="kitchen-recipes-container" style="display:flex;flex-direction:column;gap:10px"></div>
         </div>
       </div>
     </div>

@@ -65,6 +65,11 @@ class TTSManager {
         utterance.pitch = 1.16;
         utterance.rate = 0.96;
         break;
+      case 'chef':
+        // Warm, hearty, melodic gourmet chef voice
+        utterance.pitch = 0.95;
+        utterance.rate = 0.98;
+        break;
       default:
         utterance.pitch = 1.0;
         utterance.rate = 1.0;

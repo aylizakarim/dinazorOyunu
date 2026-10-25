@@ -102,8 +102,24 @@ export class Pet {
 
       // If arrived at dropped item, pick it up!
       if (target && dist <= 18) {
-        economy.add(target.type, target.amount);
-        soundManager.playItemPickup(target.type);
+        if (target.type.startsWith('seed_') && player.game && player.game.farmingSystem) {
+          player.game.farmingSystem.addSeed(target.type, target.amount);
+          soundManager.playTone(520, 0.1, 'sine', 0.08, 100);
+        } else if (target.type.startsWith('crop_') && player.game && player.game.farmingSystem) {
+          player.game.farmingSystem.addCrop(target.type, target.amount);
+          soundManager.playItemPickup('fossil');
+        } else if (target.type === 'egg' && player.game && player.game.petSystem) {
+          const eggTypes = ['rex', 'tricera', 'ptero'];
+          const randomType = eggTypes[Math.floor(Math.random() * eggTypes.length)];
+          player.game.petSystem.findEgg(randomType);
+          soundManager.playUpgrade();
+        } else if (target.type === 'rare_bone' && player.game && player.game.museumSystem) {
+          const randomBone = player.game.museumSystem.getRandomMissingBone();
+          player.game.museumSystem.addBone(randomBone.id, soundManager, floatingTexts);
+        } else {
+          economy.add(target.type, target.amount);
+          soundManager.playItemPickup(target.type);
+        }
         this.addXp(15, floatingTexts, soundManager);
 
         // Remove item from pool
